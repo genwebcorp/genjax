@@ -12,6 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _MultivariateNormal(ExactDistribution):
+    def sample(self, key, mean, cov, **kwargs):
+        return jax.random.multivariate_normal(key, mean, cov, **kwargs)
+
+    def logpdf(self, v, mean, cov, **kwargs):
+        return jnp.sum(
+            jax.scipy.stats.multivariate_normal.logpdf(v, mean, cov)
+        )
+
+
+MvNormal = _MultivariateNormal()

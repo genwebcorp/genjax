@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Logistic(ExactDistribution):
+    def sample(self, key, **kwargs):
+        return jax.random.logistic(key, **kwargs)
+
+    def logpdf(self, v, **kwargs):
+        return jnp.sum(jax.scipy.stats.logistic.logpdf(v))
+
+
+Logistic = _Logistic()

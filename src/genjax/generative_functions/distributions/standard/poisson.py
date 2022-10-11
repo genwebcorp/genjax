@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Poisson(ExactDistribution):
+    def sample(self, key, lam, **kwargs):
+        return jax.random.poisson(key, lam, **kwargs)
+
+    def logpdf(self, v, lam, **kwargs):
+        return jnp.sum(jax.scipy.stats.poisson.logpmf(v, lam))
+
+
+Poisson = _Poisson()

@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Bernoulli(ExactDistribution):
+    def sample(self, key, *args, **kwargs):
+        return jax.random.bernoulli(key, *args, **kwargs)
+
+    def logpdf(self, v, *args, **kwargs):
+        return jnp.sum(jax.scipy.stats.bernoulli.logpmf(v, *args))
+
+
+Bernoulli = _Bernoulli()

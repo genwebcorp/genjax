@@ -12,6 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+from math import pi
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Normal(ExactDistribution):
+    def sample(self, key, mu, std, **kwargs):
+        return mu + std * jax.random.normal(key, **kwargs)
+
+    def logpdf(self, v, mu, std, **kwargs):
+        z = (v - mu) / std
+        return jnp.sum(
+            -1.0
+            * (jnp.square(jnp.abs(z)) + jnp.log(2.0 * pi))
+            / (2 - jnp.log(std))
+        )
+
+
+Normal = _Normal()

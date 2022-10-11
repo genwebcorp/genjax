@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Dirichlet(ExactDistribution):
+    def sample(self, key, alpha, **kwargs):
+        return jax.random.dirichlet(key, alpha, **kwargs)
+
+    def logpdf(self, v, alpha, **kwargs):
+        return jnp.sum(jax.scipy.stats.dirichlet.logpdf(v, alpha))
+
+
+Dirichlet = _Dirichlet()

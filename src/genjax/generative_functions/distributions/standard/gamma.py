@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Gamma(ExactDistribution):
+    def sample(self, key, a, **kwargs):
+        return jax.random.gamma(key, a, **kwargs)
+
+    def logpdf(self, v, a, **kwargs):
+        return jnp.sum(jax.scipy.stats.gamma.logpdf(v, a))
+
+
+Gamma = _Gamma()

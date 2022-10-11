@@ -12,6 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .extern import *
-from .importance_sampling import *
-from .kernels import *
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax.core.tracetypes import PositiveReals
+from genjax.generative_functions.distributions.distribution import (
+    ExactDistribution,
+)
+
+
+@dataclass
+class _Cauchy(ExactDistribution):
+    def sample(self, key, **kwargs):
+        return jax.random.cauchy(key, **kwargs)
+
+    def logpdf(self, v, **kwargs):
+        return jnp.sum(jax.scipy.stats.cauchy.logpdf(v))
+
+    def get_trace_type(self, key, **kwargs):
+        shape = kwargs.get("shape", ())
+        return PositiveReals(shape)
+
+
+Cauchy = _Cauchy()
