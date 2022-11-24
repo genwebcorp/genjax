@@ -12,5 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .gaussian_processes import *
-from .state_space_models import *
+from .tinygp import *
