@@ -12,4 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module supports experimental features of `GenJAX`."""
+import jax
+import pytest
+
+import genjax
+
+
+key = jax.random.PRNGKey(314159)
+
+
+class TestBuiltinSelection:
+    def test_builtin_selection(self):
+        new = genjax.BuiltinSelection.new(["x", ("z", "y")])
+        assert new.has_subtree("z")
+        assert new.has_subtree("x")
+        v = new["x"]
+        assert isinstance(v, AllSelection)
+        v = new["z", "y"]
+        assert isinstance(v, AllSelection)
