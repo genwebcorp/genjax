@@ -13,12 +13,8 @@
 # limitations under the License.
 
 import jax
-import pytest
 
 import genjax
-
-
-key = jax.random.PRNGKey(314159)
 
 
 @genjax.gen
@@ -28,16 +24,19 @@ def simple_normal(key):
     return key, y1 + y2
 
 
-class TestSimulate:
-    def test_simple_normal_simulate(self):
-        fn = genjax.simulate(simple_normal)
-        new_key, tr = fn(key, ())
-        chm = tr.get_choices()
-        _, (score1, _) = genjax.Normal.importance(
-            key, chm.get_subtree("y1").get_choices(), (0.0, 1.0)
-        )
-        _, (score2, _) = genjax.Normal.importance(
-            key, chm.get_subtree("y2").get_choices(), (0.0, 1.0)
-        )
-        test_score = score1 + score2
-        assert tr.get_score() == pytest.approx(test_score, 0.01)
+class TestBuiltinSelection:
+    def test_builtin_selection(self):
+        new = genjax.BuiltinSelection.new(["x", ("z", "y")])
+        assert new.has_subtree("z")
+        assert new.has_subtree("x")
+        v = new["x"]
+        assert isinstance(v, genjax.AllSelection)
+        v = new["z", "y"]
+        assert isinstance(v, genjax.AllSelection)
+
+    def test_builtin_selection_filter(self):
+        key = jax.random.PRNGKey(314159)
+        key, tr = jax.jit(simple_normal.simulate)(key, ())
+        selection = genjax.BuiltinSelection.new(["y1"])
+        chm, _ = selection.filter(tr)
+        assert chm["y1"] == tr["y1"]
