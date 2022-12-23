@@ -12,7 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+from dataclasses import dataclass
+from math import pi
+
+import jax
+import jax.numpy as jnp
+
+from genjax._src.generative_functions.distributions.distribution import (
+    ExactDensity,
+)
 
 
-__all__ = ["gen"]
+@dataclass
+class _Normal(ExactDensity):
+    def sample(self, key, mu, std, **kwargs):
+        return mu + std * jax.random.normal(key, **kwargs)
+
+    def logpdf(self, v, mu, std, **kwargs):
+        z = (v - mu) / std
+        return jnp.sum(
+            -1.0
+            * (jnp.square(jnp.abs(z)) + jnp.log(2.0 * pi))
+            / (2 - jnp.log(std))
+        )
+
+
+Normal = _Normal()

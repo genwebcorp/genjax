@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+import abc
+from dataclasses import dataclass
+
+from genjax._src.core.datatypes import Trace
+from genjax._src.core.pytree import Pytree
+from genjax._src.core.typing import PRNGKey
 
 
-__all__ = ["gen"]
+@dataclass
+class MCMCKernel(Pytree):
+    @abc.abstractmethod
+    def reversal(self):
+        pass
+
+    @abc.abstractmethod
+    def apply(self, key: PRNGKey, trace: Trace):
+        pass
+
+    def __call__(self, key, trace):
+        return self.apply(key, trace)

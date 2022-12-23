@@ -12,7 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+"""This module implements a generative function combinator which allows a
+recursive grammar-like pattern for generative functions."""
+
+from dataclasses import dataclass
+
+from genjax._src.core.datatypes import GenerativeFunction
+from genjax._src.core.datatypes import Trace
 
 
-__all__ = ["gen"]
+#####
+# RecurseTrace
+#####
+
+
+@dataclass
+class RecurseTrace(Trace):
+    pass
+
+
+#####
+# RecurseCombinator
+#####
+
+
+@dataclass
+class RecurseCombinator(GenerativeFunction):
+    pass

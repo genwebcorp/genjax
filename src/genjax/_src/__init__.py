@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
-
-
-__all__ = ["gen"]
+from .console import *
+from .core import *
+from .extras import *
+from .generative_functions import *
+from .inference import *
+from .information import *
+from .interface import *
+from .language_decorator import *
+from .prox import *

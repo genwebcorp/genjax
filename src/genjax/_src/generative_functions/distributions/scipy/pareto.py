@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax._src.generative_functions.distributions.distribution import (
+    ExactDensity,
+)
 
 
-__all__ = ["gen"]
+@dataclass
+class _Pareto(ExactDensity):
+    def sample(self, key, b, **kwargs):
+        return jax.random.pareto(key, b, **kwargs)
+
+    def logpdf(self, v, b, **kwargs):
+        return jnp.sum(jax.scipy.stats.pareto.logpdf(v, b))
+
+
+Pareto = _Pareto()

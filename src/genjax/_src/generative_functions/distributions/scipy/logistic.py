@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax._src.generative_functions.distributions.distribution import (
+    ExactDensity,
+)
 
 
-__all__ = ["gen"]
+@dataclass
+class _Logistic(ExactDensity):
+    def sample(self, key, **kwargs):
+        return jax.random.logistic(key, **kwargs)
+
+    def logpdf(self, v, **kwargs):
+        return jnp.sum(jax.scipy.stats.logistic.logpdf(v))
+
+
+Logistic = _Logistic()

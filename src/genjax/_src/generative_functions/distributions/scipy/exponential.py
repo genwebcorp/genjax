@@ -12,7 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax._src.core.tracetypes import PositiveReals
+from genjax._src.generative_functions.distributions.distribution import (
+    ExactDensity,
+)
 
 
-__all__ = ["gen"]
+@dataclass
+class _Exponential(ExactDensity):
+    def sample(self, key, **kwargs):
+        return jax.random.exponential(key, **kwargs)
+
+    def logpdf(self, v, **kwargs):
+        return jnp.sum(jax.scipy.stats.expon.logpdf(v))
+
+    def get_trace_type(self, key, **kwargs):
+        shape = kwargs.get("shape", ())
+        return PositiveReals(shape)
+
+
+Exponential = _Exponential()

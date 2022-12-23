@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+
+from .combinator_datatypes import *
+from .combinator_tracetypes import *
+from .map import *
+from .recurse import *
+from .switch import *
+from .train import *
+from .unfold import *
 
 
-__all__ = ["gen"]
+##############
+# Shorthands #
+##############
+
+vector_choice_map = VectorChoiceMap.new
+Map = MapCombinator.new
+Unfold = UnfoldCombinator.new
+Switch = SwitchCombinator.new
+Recurse = RecurseCombinator.new
+Train = TrainCombinator.new

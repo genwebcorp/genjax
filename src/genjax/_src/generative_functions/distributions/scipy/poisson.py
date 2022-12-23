@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.language_decorator import gen
+from dataclasses import dataclass
+
+import jax
+import jax.numpy as jnp
+
+from genjax._src.generative_functions.distributions.distribution import (
+    ExactDensity,
+)
 
 
-__all__ = ["gen"]
+@dataclass
+class _Poisson(ExactDensity):
+    def sample(self, key, lam, **kwargs):
+        return jax.random.poisson(key, lam, **kwargs)
+
+    def logpdf(self, v, lam, **kwargs):
+        return jnp.sum(jax.scipy.stats.poisson.logpmf(v, lam))
+
+
+Poisson = _Poisson()
