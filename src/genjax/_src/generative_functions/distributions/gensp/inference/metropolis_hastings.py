@@ -20,10 +20,10 @@ import jax.numpy as jnp
 from genjax._src.core.datatypes import Trace
 from genjax._src.generative_functions.builtin.propagating import Diff
 from genjax._src.generative_functions.builtin.propagating import NoChange
-from genjax._src.prox.prox_distribution import ProxDistribution
+from genjax._src.gensp.gensp_distribution import GenSPDistribution
 
 
-def metropolis_hastings(proposal: ProxDistribution):
+def metropolis_hastings(proposal: GenSPDistribution):
     def _inner(key, trace: Trace, proposal_args: Tuple):
         model = trace.get_gen_fn()
         model_args = trace.get_args()

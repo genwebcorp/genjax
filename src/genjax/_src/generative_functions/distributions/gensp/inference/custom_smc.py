@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """This module supports a JAX compatible implementation of SMC as a
-`ProxDistribution`."""
+`GenSPDistribution`."""
 
 from dataclasses import dataclass
 from typing import Any
@@ -26,20 +26,20 @@ import jax.tree_util as jtu
 import numpy as np
 
 from genjax._src.core.datatypes.generative import ValueChoiceMap
-from genjax._src.generative_functions.distributions.prox.prox_distribution import (
-    ProxDistribution,
+from genjax._src.generative_functions.distributions.gensp.gensp_distribution import (
+    GenSPDistribution,
 )
-from genjax._src.generative_functions.distributions.prox.target import Target
+from genjax._src.generative_functions.distributions.gensp.target import Target
 
 
 Int = Union[np.int32, jnp.int32]
 
 
 @dataclass
-class CustomSMC(ProxDistribution):
+class CustomSMC(GenSPDistribution):
     initial_state: Callable[[Target], Any]
     step_target: Callable[[Any, Any, Target], Target]
-    step_proposal: ProxDistribution
+    step_proposal: GenSPDistribution
     num_steps: Callable[[Target], Int]
     num_particles: Int
 

@@ -16,32 +16,32 @@ from dataclasses import dataclass
 
 from genjax._src.core.datatypes.generative import emp_chm
 from genjax._src.core.typing import typecheck
-from genjax._src.generative_functions.distributions.prox.prox_distribution import (
-    ProxDistribution,
+from genjax._src.generative_functions.distributions.gensp.gensp_distribution import (
+    GenSPDistribution,
 )
-from genjax._src.generative_functions.distributions.prox.target import Target
-from genjax._src.generative_functions.distributions.prox.unnorm import (
+from genjax._src.generative_functions.distributions.gensp.target import Target
+from genjax._src.generative_functions.distributions.gensp.unnorm import (
     UnnormalizedMeasureFunction,
 )
 
 
 #######################################
-# Approximate normalized distribution #
+# Estimated normalized distribution #
 #######################################
 
 
 @dataclass
-class ApproximateNormalizedDistribution(ProxDistribution):
+class EstimatedNormalizedDistribution(GenSPDistribution):
     unnorm_fn: UnnormalizedMeasureFunction
-    custom_q: ProxDistribution
+    custom_q: GenSPDistribution
 
     def flatten(self):
         return (self.unnorm_fn, self.custom_q), ()
 
     @typecheck
     @classmethod
-    def new(cls, custom_q: ProxDistribution, unnorm_fn: UnnormalizedMeasureFunction):
-        return ApproximateNormalizedDistribution(unnorm_fn, custom_q)
+    def new(cls, custom_q: GenSPDistribution, unnorm_fn: UnnormalizedMeasureFunction):
+        return EstimatedNormalizedDistribution(unnorm_fn, custom_q)
 
     def random_weighted(self, key, *args):
         target = Target.new(self.unnorm_fn, args, emp_chm())
@@ -58,4 +58,4 @@ class ApproximateNormalizedDistribution(ProxDistribution):
 # Shorthands #
 ##############
 
-approx_norm_dist = ApproximateNormalizedDistribution.new
+estimated_norm_dist = EstimatedNormalizedDistribution.new

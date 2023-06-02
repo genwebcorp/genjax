@@ -19,20 +19,20 @@ from genjax._src.core.datatypes.generative import GenerativeFunction
 from genjax._src.core.datatypes.generative import Selection
 from genjax._src.core.datatypes.generative import ValueChoiceMap
 from genjax._src.core.typing import Union
-from genjax._src.generative_functions.distributions.prox.prox_distribution import (
-    ProxDistribution,
+from genjax._src.generative_functions.distributions.gensp.gensp_distribution import (
+    GenSPDistribution,
 )
-from genjax._src.generative_functions.distributions.prox.target import Target
-from genjax._src.generative_functions.distributions.prox.utils import (
+from genjax._src.generative_functions.distributions.gensp.target import Target
+from genjax._src.generative_functions.distributions.gensp.utils import (
     static_check_supports,
 )
 
 
 @dataclass
-class ChoiceMapDistribution(ProxDistribution):
+class ChoiceMapDistribution(GenSPDistribution):
     p: GenerativeFunction
     selection: Selection
-    custom_q: Union[None, ProxDistribution]
+    custom_q: Union[None, GenSPDistribution]
 
     def flatten(self):
         return (), (self.p, self.selection, self.custom_q)

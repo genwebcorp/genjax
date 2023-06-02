@@ -19,16 +19,16 @@ from genjax._src.core.datatypes.generative import ValueChoiceMap
 from genjax._src.core.typing import Any
 from genjax._src.generative_functions.builtin.builtin_datatypes import BuiltinChoiceMap
 from genjax._src.generative_functions.builtin.builtin_datatypes import BuiltinSelection
-from genjax._src.generative_functions.distributions.prox.prox_distribution import (
-    ProxDistribution,
+from genjax._src.generative_functions.distributions.gensp.gensp_distribution import (
+    GenSPDistribution,
 )
-from genjax._src.generative_functions.distributions.prox.target import Target
+from genjax._src.generative_functions.distributions.gensp.target import Target
 
 
 @dataclass
-class Marginal(ProxDistribution):
+class Marginal(GenSPDistribution):
     p: GenerativeFunction
-    q: ProxDistribution
+    q: GenSPDistribution
     addr: Any
 
     def flatten(self):
