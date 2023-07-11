@@ -22,7 +22,7 @@ from genjax._src.generative_functions.distributions.distribution import (
 
 
 @dataclass
-class ProxDistribution(Distribution):
+class GenSPDistribution(Distribution):
     def simulate(self, key, args):
         key, (weight, val) = self.random_weighted(key, *args)
         val = val.strip()

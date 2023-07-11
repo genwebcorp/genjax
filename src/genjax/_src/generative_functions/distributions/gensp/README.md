@@ -1,8 +1,8 @@
-# GenProx
+# GenSP
 
-This is a Python implementation (on top of JAX + GenJAX's Gen interfaces) of `GenProx` - a set of concepts and types for compositional programming with approximate densities. 
+This is a Python implementation (on top of JAX + GenJAX's Gen interfaces) of `GenSP` - a set of concepts and types for compositional programming with estimated densities. 
 
-The original source code was developed by Alex Lew in Julia here: https://github.com/probcomp/GenProx.jl.
+The original source code was developed by Alex Lew in Julia here: https://github.com/probcomp/GenSP.jl.
 
 A formal description of elements of this work can be found in Alex Lew's work on [Recursive auxiliary-variable inference](https://arxiv.org/abs/2203.02836) (will update with a formal citation).
 
