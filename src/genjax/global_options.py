@@ -12,26 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
-
-import jax
-import jax.numpy as jnp
-
-from genjax._src.core.datatypes.generative import PositiveReals
-from genjax._src.generative_functions.distributions.distribution import ExactDensity
+from genjax._src.global_options import global_options
 
 
-@dataclass
-class Cauchy(ExactDensity):
-    def sample(self, key, **kwargs):
-        return jax.random.cauchy(key, **kwargs)
-
-    def logpdf(self, v, **kwargs):
-        return jnp.sum(jax.scipy.stats.cauchy.logpdf(v))
-
-    def get_trace_type(self, **kwargs):
-        shape = kwargs.get("shape", ())
-        return PositiveReals(shape)
-
-
-cauchy = Cauchy()
+__all__ = [
+    "global_options",
+]

@@ -14,24 +14,20 @@
 
 from dataclasses import dataclass
 
-import jax
-import jax.numpy as jnp
-
-from genjax._src.core.datatypes.generative import PositiveReals
-from genjax._src.generative_functions.distributions.distribution import ExactDensity
+from genjax._src.core.typing import Bool
+from genjax._src.core.typing import Callable
 
 
 @dataclass
-class Cauchy(ExactDensity):
-    def sample(self, key, **kwargs):
-        return jax.random.cauchy(key, **kwargs)
+class GenJAXGlobalOptions:
+    checkify_flag: Bool = False
 
-    def logpdf(self, v, **kwargs):
-        return jnp.sum(jax.scipy.stats.cauchy.logpdf(v))
+    def allow_checkify(self, flag: Bool):
+        self.checkify_flag = flag
 
-    def get_trace_type(self, **kwargs):
-        shape = kwargs.get("shape", ())
-        return PositiveReals(shape)
+    def optional_check(self, check: Callable):
+        if self.checkify_flag:
+            check()
 
 
-cauchy = Cauchy()
+global_options = GenJAXGlobalOptions()

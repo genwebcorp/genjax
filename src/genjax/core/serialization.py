@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.core.datatypes.hashabledict import HashableDict
-from genjax._src.core.datatypes.hashabledict import hashabledict
+from genjax._src.core.serialization.backend import SerializationBackend
+from genjax._src.core.serialization.pickle import SupportsPickleDeserialization
+from genjax._src.core.serialization.pickle import SupportsPickleSerialization
 
 
 __all__ = [
-    "HashableDict",
-    "hashabledict",
+    "SerializationBackend",
+    "SupportsPickleSerialization",
+    "SupportsPickleDeserialization",
 ]
