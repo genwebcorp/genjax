@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.gensp.nablasp import ADEVDistribution
-from genjax._src.gensp.nablasp import elbo
-from genjax._src.gensp.nablasp import flip_enum
-from genjax._src.gensp.nablasp import geometric_reinforce
-from genjax._src.gensp.nablasp import hvi_elbo
-from genjax._src.gensp.nablasp import iwae_elbo
-from genjax._src.gensp.nablasp import marginal
-from genjax._src.gensp.nablasp import mv_normal_diag_reparam
-from genjax._src.gensp.nablasp import mv_normal_reparam
-from genjax._src.gensp.nablasp import normal_reinforce
-from genjax._src.gensp.nablasp import normal_reparam
-from genjax._src.gensp.nablasp import sir
+from genjax._src.gensp.grasp import ADEVDistribution
+from genjax._src.gensp.grasp import elbo
+from genjax._src.gensp.grasp import flip_enum
+from genjax._src.gensp.grasp import geometric_reinforce
+from genjax._src.gensp.grasp import iwae_elbo
+from genjax._src.gensp.grasp import marginal
+from genjax._src.gensp.grasp import mv_normal_diag_reparam
+from genjax._src.gensp.grasp import mv_normal_reparam
+from genjax._src.gensp.grasp import normal_reinforce
+from genjax._src.gensp.grasp import normal_reparam
+from genjax._src.gensp.grasp import sir
+from genjax._src.gensp.grasp import uniform
 
 
 __all__ = [
@@ -34,9 +34,9 @@ __all__ = [
     "mv_normal_reparam",
     "mv_normal_diag_reparam",
     "geometric_reinforce",
+    "uniform",
     "sir",
     "marginal",
     "elbo",
     "iwae_elbo",
-    "hvi_elbo",
 ]
