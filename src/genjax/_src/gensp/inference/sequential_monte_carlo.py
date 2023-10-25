@@ -47,10 +47,8 @@ from genjax._src.core.transforms.incremental import tree_diff_primal
 from genjax._src.core.typing import Float
 from genjax._src.core.typing import Int
 from genjax._src.core.typing import PRNGKey
-from genjax._src.generative_functions.distributions.gensp.gensp_distribution import (
-    GenSPDistribution,
-)
-from genjax._src.generative_functions.distributions.gensp.target import Target
+from genjax._src.gensp.choice_map_distribution import ChoiceMapDistribution
+from genjax._src.gensp.target import Target
 
 
 #####
@@ -182,7 +180,7 @@ class SMCPropagator(Pytree):
 
 @dataclasses.dataclass
 class SMCExtendPropagator(SMCPropagator):
-    k: GenSPDistribution
+    k: ChoiceMapDistribution
 
     def flatten(self):
         return (), (self.k,)
@@ -192,7 +190,6 @@ class SMCExtendPropagator(SMCPropagator):
         new_constraints = old_constraints.safe_merge(new_choices)
         return Target(
             target.p,
-            target.choice_map_coercion,
             new_args,
             new_constraints,
         )
@@ -401,7 +398,7 @@ class SMCSequencePropagator(SMCPropagator):
             return SMCSequencePropagator([fst, snd])
 
     def propagate_target(self, target: Target, args_sequence: Sequence[Tuple]):
-        for (propagator, args) in zip(self.sequence, args_sequence):
+        for propagator, args in zip(self.sequence, args_sequence):
             target = propagator.propagate_target(target, *args)
         return target
 
@@ -411,7 +408,7 @@ class SMCSequencePropagator(SMCPropagator):
         state: SMCState,
         args_sequence: Sequence[Tuple],
     ) -> Tuple[PRNGKey, SMCState]:
-        for (propagator, args) in zip(self.sequence, args_sequence):
+        for propagator, args in zip(self.sequence, args_sequence):
             key, state = propagator.apply(key, state, *args)
         return key, state
 
@@ -429,7 +426,7 @@ class SMCSequencePropagator(SMCPropagator):
 
 
 @dataclasses.dataclass
-class SMCAlgorithm(GenSPDistribution):
+class SMCAlgorithm(ChoiceMapDistribution):
     @abc.abstractmethod
     def get_final_target(self) -> Target:
         pass

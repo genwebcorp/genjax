@@ -12,25 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import abc
 from dataclasses import dataclass
 
 from genjax._src.core.datatypes.generative import ValueChoiceMap
+from genjax._src.core.typing import FloatArray
+from genjax._src.core.typing import PRNGKey
+from genjax._src.core.typing import Tuple
 from genjax._src.generative_functions.distributions.distribution import Distribution
-from genjax._src.generative_functions.distributions.distribution import (
-    DistributionTrace,
-)
 
 
 @dataclass
-class GenSPDistribution(Distribution):
-    def simulate(self, key, args):
-        key, (weight, val) = self.random_weighted(key, *args)
-        val = val.strip()
-        return key, DistributionTrace(self, args, val, weight)
+class SPDistribution(Distribution):
+    @abc.abstractmethod
+    def random_weighted(key: PRNGKey, *args) -> Tuple[FloatArray, ValueChoiceMap]:
+        pass
 
-    def assess(self, key, chm, args):
-        assert isinstance(chm, ValueChoiceMap)
-        val = chm.get_leaf_value()
-        val = val.strip()
-        key, w = self.estimate_logpdf(key, val, *args)
-        return key, (val, w)
+    @abc.abstractmethod
+    def estimate_logpdf(key: PRNGKey, v, *args) -> FloatArray:
+        pass
