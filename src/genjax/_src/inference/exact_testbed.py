@@ -1,4 +1,4 @@
-# Copyright 2023 MIT Probabilistic Computing Project
+# Copyright 2024 MIT Probabilistic Computing Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A module containing a test suite for inference based on exact inference in
-hidden Markov models (HMMs)."""
+"""A module containing a test suite for inference based on exact inference in hidden
+Markov models (HMMs)."""
 
 
 import jax
 import jax.numpy as jnp
 
-from genjax._src.core.datatypes.generative import select
-from genjax._src.core.pytree.pytree import Pytree
+from genjax._src.core.pytree import Pytree
 from genjax._src.core.typing import FloatArray, IntArray, PRNGKey
 from genjax._src.generative_functions.combinators.vector.unfold_combinator import (
     unfold_combinator,
@@ -32,6 +31,7 @@ from genjax._src.generative_functions.distributions.tensorflow_probability impor
     categorical,
 )
 from genjax._src.generative_functions.static.static_gen_fn import static_gen_fn
+from genjax._src.shortcuts import select
 
 
 class DiscreteHMMInferenceProblem(Pytree):
@@ -57,7 +57,7 @@ class DiscreteHMMInferenceProblem(Pytree):
         return self.log_data_marginal
 
 
-def build_inference_test_generator(
+def build_test_against_exact_inference(
     max_length: IntArray,
     state_space_size: IntArray,
     transition_distance_truncation: IntArray,
@@ -107,6 +107,6 @@ def build_inference_test_generator(
 
 
 default_problem_config = (10, 10, 1, 1, 0.3, 0.3)
-default_problem_generator = build_inference_test_generator(
+default_problem_generator = build_test_against_exact_inference(
     *default_problem_config,
 )
