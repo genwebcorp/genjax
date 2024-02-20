@@ -1,4 +1,4 @@
-# Copyright 2023 MIT Probabilistic Computing Project
+# Copyright 2024 MIT Probabilistic Computing Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This module implements a custom type of `GenerativeFunction` designed to
-support data allocation optimizations for special `GenerativeFunction` types
-which support a notion of calling another `GenerativeFunction`. Examples of
-this type include `MapCombinator`.
+"""This module implements a custom type of `GenerativeFunction` designed to support data
+allocation optimizations for special `GenerativeFunction` types which support a notion
+of calling another `GenerativeFunction`. Examples of this type include `MapCombinator`.
 
 The `DropArgumentsGenerativeFunction` exposes GFI methods which eliminate stored arguments in its returned trace. This is only valid if a caller `GenerativeFunction` which invokes a `DropArgumentsGenerativeFunction` provides arguments ("restores" the arguments) when it invokes `DropArgumentsGenerativeFunction` methods.
 
@@ -79,13 +78,13 @@ class DropArgumentsGenerativeFunction(JAXGenerativeFunction):
         tr = self.gen_fn.simulate(key, args)
         inner_retval = tr.get_retval()
         inner_score = tr.get_score()
-        inner_chm = tr.get_choices()
+        inner_choice = tr.get_choices()
         aux = tr.get_aux()
         return DropArgumentsTrace(
             self,
             inner_retval,
             inner_score,
-            inner_chm,
+            inner_choice,
             aux,
         )
 
@@ -98,14 +97,14 @@ class DropArgumentsGenerativeFunction(JAXGenerativeFunction):
         w, tr = self.gen_fn.importance(key, choice_map, args)
         inner_retval = tr.get_retval()
         inner_score = tr.get_score()
-        inner_chm = tr.get_choices()
+        inner_choice = tr.get_choices()
         aux = tr.get_aux()
         return (
             DropArgumentsTrace(
                 self,
                 inner_retval,
                 inner_score,
-                inner_chm,
+                inner_choice,
                 aux,
             ),
             w,
@@ -123,14 +122,14 @@ class DropArgumentsGenerativeFunction(JAXGenerativeFunction):
         )
         inner_retval = tr.get_retval()
         inner_score = tr.get_score()
-        inner_chm = tr.get_choices()
+        inner_choice = tr.get_choices()
         aux = tr.get_aux()
         return (
             DropArgumentsTrace(
                 self,
                 inner_retval,
                 inner_score,
-                inner_chm,
+                inner_choice,
                 aux,
             ),
             w,
