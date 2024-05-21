@@ -81,8 +81,9 @@ class VmapTrace(Trace):
 
 @Pytree.dataclass
 class VmapCombinator(GenerativeFunction):
-    """> `VmapCombinator` accepts a generative function as input and provides
-    `vmap`-based implementations of the generative function interface methods.
+    """`VmapCombinator` is a generative function which lifts another generative function to support `vmap`-based patterns of parallel (and generative) computation.
+
+    In contrast to the full set of options which [`jax.vmap`](https://jax.readthedocs.io/en/latest/_autosummary/jax.vmap.html), this combinator expects an `in_axes: Tuple` configuration argument, which indicates how the underlying `vmap` patterns should be broadcast across the input arguments to the generative function.
 
     Examples:
         ```python exec="yes" html="true" source="material-block" session="gen-fn"
@@ -122,7 +123,14 @@ class VmapCombinator(GenerativeFunction):
     """
 
     gen_fn: GenerativeFunction
+    """
+    The source generative function.
+    """
+
     in_axes: Tuple = Pytree.static()
+    """
+    The axes specified, it should be a tuple which matches (or prefixes) the `Pytree` type of the argument tuple for the underlying `gen_fn`.
+    """
 
     def __abstract_call__(self, *args) -> Any:
         def inner(*args):
