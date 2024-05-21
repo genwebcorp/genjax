@@ -54,9 +54,9 @@ Weight = Annotated[
     Is[lambda arr: jnp.array(arr, copy=False).shape == ()],
 ]
 """
-A _weight_ is a specific density ratio, an importance weight, described fully in [`update`][genjax.core.GenerativeFunction.update].
+A _weight_ is a density ratio (an importance weight), whose mathematical content is described in [`update`][genjax.core.GenerativeFunction.update].
 
-The type `Weight` does not enforce any meaningful mathematical invariants, but is used to denote the type of the score in the GenJAX system, to improve readability and parsing of interface specifications.
+The type `Weight` does not enforce any meaningful mathematical invariants, but is used to denote the type of weights in GenJAX, to improve readability and parsing of interface specifications / expectations.
 """
 Score = Annotated[
     float | FloatArray,
@@ -65,7 +65,7 @@ Score = Annotated[
 """
 A _score_ is a specific density ratio, described fully in [`simulate`][genjax.core.GenerativeFunction.simulate].
 
-The type `Score` does not enforce any meaningful mathematical invariants, but is used to denote the type of the score in the GenJAX system, to improve readability and parsing of interface specifications.
+The type `Score` does not enforce any meaningful mathematical invariants, but is used to denote the type of scores in the GenJAX system, to improve readability and parsing of interface specifications.
 
 Under type checking, the type `Score` enforces that the value must be a scalar floating point number.
 """
@@ -369,7 +369,7 @@ class Trace(Pytree):
         argdiffs: Optional[Tuple | Argdiffs] = None,
     ) -> Tuple["Trace", Weight, Retdiff, UpdateProblem]:
         """
-        Update a trace in response to an `UpdateProblem`. This method calls out to the underlying `GenerativeFunction.update` method - see [`UpdateProblem`][genjax.core.UpdateProblem] and [`update`][genjax.core.GenerativeFunction.update] for more information.
+        This method calls out to the underlying `GenerativeFunction.update` method - see [`UpdateProblem`][genjax.core.UpdateProblem] and [`update`][genjax.core.GenerativeFunction.update] for more information.
         """
         gen_fn = self.get_gen_fn()
         if argdiffs:
@@ -475,7 +475,7 @@ class GenerativeFunction(Pytree):
         args: Tuple,
     ) -> Trace:
         """
-        Execute the generative function, which may include sampling random choices, and return a [`Trace`](core.md#genjax.core.Trace).
+        Execute the generative function, sampling from its distribution over samples, and return a [`Trace`](core.md#genjax.core.Trace).
 
         Examples:
             ```python exec="yes" html="true" source="material-block" session="core"
@@ -494,7 +494,7 @@ class GenerativeFunction(Pytree):
             print(tr.render_html())
             ```
 
-            Another example, using the same model, composed into [`genjax.repeat_combinator`](generative_functions.md) - which creates a new generative function, which has the same interface:
+            Another example, using the same model, composed into [`genjax.repeat_combinator`](generative_functions.md#genjax.repeat_combinator) - which creates a new generative function, which has the same interface:
             ```python exec="yes" html="true" source="material-block" session="core"
             @genjax.gen
             def model():
@@ -530,7 +530,7 @@ class GenerativeFunction(Pytree):
         argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
         """
-        Update a trace of the generative function, in response to an `UpdateProblem`.
+        Update a trace in response to an [`UpdateProblem`][genjax.core.UpdateProblem], returning a new [`Trace`][genjax.core.Trace], a proper [`Weight`][genjax.core.Weight] for the new target, a [`Retdiff`][genjax.core.Retdiff] return value tagged with change information, and a backward [`UpdateProblem`][genjax.core.UpdateProblem] which requests the reverse move (to go back to the original trace).
 
         The specification of this interface is parametric over the kind of `UpdateProblem` -- responding to an `UpdateProblem` instance requires that the generative function provides an implementation of a sequential Monte Carlo move in the [SMCP3](https://proceedings.mlr.press/v206/lew23a.html) framework.
 
@@ -587,7 +587,7 @@ class GenerativeFunction(Pytree):
         args: Tuple,
     ) -> Tuple[Trace, Weight]:
         """
-        Generates a properly weighted sample from the target $T$ induced by the generative function for the provided constraint and arguments.
+        Returns a properly weighted pair, a [`Trace`][genjax.core.Trace] and a [`Weight`][genjax.core.Weight], properly weighted for the target induced by the generative function for the provided constraint and arguments.
 
         Formally, creates an `UpdateProblem` which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
         """
@@ -603,6 +603,9 @@ class GenerativeFunction(Pytree):
         key: PRNGKey,
         args: Tuple,
     ) -> Tuple[Sample, Score, Retval]:
+        """
+        Generates a sample from the generative function's distribution over samples, returns the score of that sample under the distribution, and returns the return value of the generative function for that sample.
+        """
         tr = self.simulate(key, args)
         sample = tr.get_sample()
         score = tr.get_score()

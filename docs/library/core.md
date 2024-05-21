@@ -64,6 +64,9 @@ GenJAX provides an abstract class called `Pytree` which automates the implementa
         - static
         - field
 
+::: genjax.core.Const
+
+::: genjax.core.Closure
 ## Dynamism in JAX: masks and sum types
 
 The semantics of Gen are defined independently of any particular computational substrate or implementation - but JAX (and XLA through JAX) is a unique substrate, offering high performance, the ability to transformation code ahead-of-time via program transformations, and ... _a rather unique set of restrictions_.

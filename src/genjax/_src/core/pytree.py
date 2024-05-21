@@ -396,6 +396,33 @@ class Pytree(pz.Struct):
 # Wrapper for static values (can include callables).
 @Pytree.dataclass
 class Const(Pytree):
+    """
+    JAX-compatible way to tag a value as a constant. Valid constants include Python literals, strings, essentially anything **that won't hold JAX arrays** inside of a computation.
+
+    Examples:
+        Instances of `Const` can be created using a `Pytree` classmethod:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        from genjax import Pytree
+        c = Pytree.const(5)
+        print(c.render_html())
+        ```
+
+        Constants can be freely used across [`jax.jit`](https://jax.readthedocs.io/en/latest/_autosummary/jax.jit.html) boundaries:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        from genjax import Pytree
+
+        def f(c):
+            if c.const == 5:
+                return 10.0
+            else:
+                return 5.0
+
+        c = Pytree.const(5)
+        r = jax.jit(f)(c)
+        print(r)
+        ```
+    """
+
     const: Any = Pytree.static()
 
     def __call__(self, *args):
@@ -403,9 +430,33 @@ class Const(Pytree):
 
 
 # Construct for a type of closure which closes over dynamic values.
-# NOTE: experimental.
 @Pytree.dataclass
 class Closure(Pytree):
+    """
+    JAX-compatible closure type. It's a closure _as a [`Pytree`][genjax.core.Pytree] - meaning the static _source code / callable_ is separated from dynamic data (which must be tracked by JAX).
+
+    Examples:
+        Instances of `Closure` can be created using `Pytree.partial` -- note the order of the "closed over" arguments:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        from genjax import Pytree
+        def g(y):
+            @Pytree.partial(y) # dynamic values come first
+            def f(v, x):
+                return x * (v * 5.0)
+
+            return f
+
+        clos = jax.jit(g)(5.0)
+        print(clos.render_html())
+        ```
+
+        Closures can be invoked / JIT compiled in other code:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        r = jax.jit(lambda x: clos(x))(3.0)
+        print(r)
+        ```
+    """
+
     dyn_args: Tuple
     fn: Callable = Pytree.static()
 

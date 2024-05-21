@@ -22,6 +22,15 @@ Distributions intentionally expose a permissive interface ([`random_weighted`](g
 
 ## `StaticGenerativeFunction`: a programmatic language
 
+::: genjax.StaticGenerativeFunction
+    options:
+        show_root_heading: true
+        members:
+        - source
+        - simulate
+        - assess
+        - update
+
 ## Combinators: patterns for composition
 
 ::: genjax.VmapCombinator
