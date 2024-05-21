@@ -22,8 +22,6 @@
 
 </div>
 
-
-
 ## 🔎 What is GenJAX?
 
 Gen is a multi-paradigm (generative, differentiable, incremental) language for probabilistic programming focused on [**generative functions**: computational objects which represent probability measures over structured sample spaces](https://probcomp.github.io/genjax/cookbook/active/intro.html#generative-functions).
@@ -41,12 +39,13 @@ GenJAX is an implementation of Gen on top of [JAX](https://github.com/google/jax
 
 ## Quickstart
 
-GenJAX is currently private. To configure your machine to access the package:
-
-- Ask @sritchie to add you to the `probcomp-caliban` project on Google Cloud.
-- [Install the Google Cloud command line tools](https://cloud.google.com/sdk/docs/install).
-- Follow the instructions on the [installation page](https://cloud.google.com/sdk/docs/install)
-- run `gcloud init` as described [in this guide](https://cloud.google.com/sdk/docs/initializing).
+> [!IMPORTANT] 
+> GenJAX is currently private. To configure your machine to access the package,
+> - [file a ticket requesting access to the GenJAX-Users
+> group](https://github.com/probcomp/genjax/issues/new?assignees=sritchie&projects=&template=access.md&title=%5BACCESS%5D)
+> - [install the Google Cloud command line tools](https://cloud.google.com/sdk/docs/install)
+> - follow the instructions on the [installation page](https://cloud.google.com/sdk/docs/install)
+> - run `gcloud init` as described [in this guide](https://cloud.google.com/sdk/docs/initializing).
 
 To install GenJAX using `pip`:
 
@@ -77,7 +76,8 @@ On a Linux machine with a GPU, run the following command:
 pip install jax[cuda12]==0.4.28
 ```
 
-### Quick example
+### Quick example [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1aEFpmpgh43B0tk-V0dXT-hple0LWPmQT?usp=sharing)
+
 
 The following code snippet defines a generative function called `beta_bernoulli` that
 
