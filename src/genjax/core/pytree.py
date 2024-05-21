@@ -15,7 +15,7 @@
 from genjax._src.core.pytree import Closure, Const, Pytree
 
 __all__ = [
-    "Pytree",
-    "Const",
     "Closure",
+    "Const",
+    "Pytree",
 ]
