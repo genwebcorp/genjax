@@ -433,7 +433,7 @@ class Const(Pytree):
 @Pytree.dataclass
 class Closure(Pytree):
     """
-    JAX-compatible closure type. It's a closure _as a [`Pytree`][genjax.core.Pytree] - meaning the static _source code / callable_ is separated from dynamic data (which must be tracked by JAX).
+    JAX-compatible closure type. It's a closure _as a [`Pytree`][genjax.core.Pytree]_ - meaning the static _source code_ / _callable_ is separated from dynamic data (which must be tracked by JAX).
 
     Examples:
         Instances of `Closure` can be created using `Pytree.partial` -- note the order of the "closed over" arguments:
@@ -442,6 +442,7 @@ class Closure(Pytree):
         def g(y):
             @Pytree.partial(y) # dynamic values come first
             def f(v, x):
+                # v will be bound to the value of y
                 return x * (v * 5.0)
 
             return f

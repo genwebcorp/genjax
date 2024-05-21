@@ -22,6 +22,8 @@ Distributions intentionally expose a permissive interface ([`random_weighted`](g
 
 ## `StaticGenerativeFunction`: a programmatic language
 
+For any serious work, you'll want a way to combine generative functions together, mixing deterministic functions with sampling. `StaticGenerativeFunction` is a way to do that: it supports the use of a JAX compatible subset of Python to author generative functions. It also supports the ability _to invoke_ other generative functions: instances of this type (and any other type of generative function) can then be used in larger generative programs.
+
 ::: genjax.StaticGenerativeFunction
     options:
         show_root_heading: true

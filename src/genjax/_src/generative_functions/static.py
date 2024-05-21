@@ -469,22 +469,20 @@ def handler_trace_with_static(
 @Pytree.dataclass
 class StaticGenerativeFunction(GenerativeFunction):
     """A `StaticGenerativeFunction` is a generative function which relies on program
-    transformations applied to JAX traceable Python programs to implement the generative
+    transformations applied to JAX-compatible Python programs to implement the generative
     function interface.
 
     By virtue of the implementation, any source program which is provided to this generative function *must* be JAX traceable, meaning [all the footguns for programs that JAX exposes](https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html) apply to the source program.
 
-    In addition to the normal JAX footguns, there are a few more which are specific to the generative function interface semantics. Here is the full list of language restrictions (and capabilities):
+    **Language restrictions**
+
+    In addition to JAX footguns, there are a few more which are specific to the generative function interface semantics. Here is the full list of language restrictions (and capabilities):
 
     * One is allowed to use `jax.lax` control flow primitives _so long as the functions provided to the primitives do not contain `trace` invocations_. In other words, utilizing control flow primitives within the source of a `StaticGenerativeFunction`'s source program requires that the control flow primitives get *deterministic* computation.
 
     * The above restriction also applies to `jax.vmap`.
 
-    !!! tip "Combinators for control flow"
-
-        If you'd like to use control flow _on generative computation_, [the generative function combinators](../generative_functions/combinators) provide a way to do so in a way which is consistent with Gen's semantics and interfaces.
-
-    * Source programs are allowed to utilize untraced randomness, with the usual Gen restrictions. In addition, it is highly recommended (meaning, for correctness, you absolutely should) to use [`jax.random`](https://jax.readthedocs.io/en/latest/jax.random.html) and JAX's PRNG capabilities. To utilize untraced randomness, you'll need to pass in an extra key as an argument to your model.
+    * Source programs are allowed to utilize untraced randomness, although there are restrictions (which we discuss below). It is required to use [`jax.random`](https://jax.readthedocs.io/en/latest/jax.random.html) and JAX's PRNG capabilities. To utilize untraced randomness, you'll need to pass in an extra key as an argument to your model.
 
         ```python
         @gen
@@ -496,6 +494,9 @@ class StaticGenerativeFunction(GenerativeFunction):
     """
 
     source: Closure
+    """
+    The source program of the generative function. This is a JAX-compatible Python program.
+    """
 
     # To get the type of return value, just invoke
     # the source (with abstract tracer arguments).
