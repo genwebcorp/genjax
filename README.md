@@ -39,7 +39,7 @@ GenJAX is an implementation of Gen on top of [JAX](https://github.com/google/jax
 
 ## Quickstart
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > GenJAX is currently private. To configure your machine to access the package,
 > - [file a ticket requesting access to the GenJAX-Users
 > group](https://github.com/probcomp/genjax/issues/new?assignees=sritchie&projects=&template=access.md&title=%5BACCESS%5D)
