@@ -15,6 +15,7 @@ The main computational objects in Gen are _generative functions_. These objects 
         - assess
         - update
         - importance
+        - propose
 
 Traces are data structures which record (execution and inference) data about the invocation of generative functions. Traces are often specialized to a generative function language, to take advantage of data locality, and other representation optimizations. Traces support a _trace interface_: a set of accessor methods designed to provide convenient manipulation when handling traces in inference algorithms. We document this interface below for the `Trace` data type.
 

@@ -579,6 +579,7 @@ class GenerativeFunction(Pytree):
         """
         raise NotImplementedError
 
+    @typecheck
     def importance(
         self,
         key: PRNGKey,
@@ -595,6 +596,18 @@ class GenerativeFunction(Pytree):
             key, EmptyTrace(self), importance_problem, Diff.unknown_change(args)
         )
         return tr, w
+
+    @typecheck
+    def propose(
+        self,
+        key: PRNGKey,
+        args: Tuple,
+    ) -> Tuple[Sample, Score, Retval]:
+        tr = self.simulate(key, args)
+        sample = tr.get_sample()
+        score = tr.get_score()
+        retval = tr.get_retval()
+        return sample, score, retval
 
     # NOTE: Supports pretty printing in penzai.
     def treescope_color(self):
