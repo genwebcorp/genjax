@@ -579,6 +579,7 @@ class GenerativeFunction(Pytree):
         """
         raise NotImplementedError
 
+    @typecheck
     def importance(
         self,
         key: PRNGKey,
@@ -596,6 +597,7 @@ class GenerativeFunction(Pytree):
         )
         return tr, w
 
+    @typecheck
     def propose(
         self,
         key: PRNGKey,
