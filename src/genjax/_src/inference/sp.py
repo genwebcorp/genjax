@@ -17,14 +17,10 @@ from abc import abstractmethod
 import jax
 
 from genjax._src.core.generative import (
-    Address,
     ChoiceMap,
-    ChoiceMapBuilder,
-    Constraint,
     GenerativeFunction,
     Sample,
     Selection,
-    SelectionBuilder,
     Weight,
 )
 from genjax._src.core.pytree import Pytree
@@ -260,7 +256,7 @@ class Marginal(SampleDistribution):
     def estimate_logpdf(
         self,
         key: PRNGKey,
-        constraint: Constraint,
+        constraint: ChoiceMap,
         *args,
     ) -> Weight:
         if self.algorithm is None:
@@ -270,47 +266,6 @@ class Marginal(SampleDistribution):
             target = Target(self.gen_fn, args, constraint)
             Z = self.algorithm.estimate_normalizing_constant(key, target)
             return Z
-
-
-@Pytree.dataclass
-@typecheck
-class ValueMarginal(Distribution):
-    """The `ValueMarginal` class represents the marginal distribution of a generative function over
-    a single address `addr: Any`. The return value type is the type of the value at that address.
-    """
-
-    p: GenerativeFunction
-    addr: Any
-    algorithm: Optional[Algorithm] = Pytree.field(default=None)
-
-    @typecheck
-    def random_weighted(
-        self,
-        key: PRNGKey,
-        *args,
-    ) -> Tuple[Weight, Any]:
-        marginal = Marginal(
-            self.p,
-            SelectionBuilder[self.addr],
-            self.algorithm,
-        )
-        Z, choice = marginal.random_weighted(key, *args)
-        return Z, choice[self.addr]
-
-    @typecheck
-    def estimate_logpdf(
-        self,
-        key: PRNGKey,
-        v: Any,
-        *args,
-    ) -> Weight:
-        marginal = Marginal(
-            self.p,
-            SelectionBuilder[self.addr],
-            self.algorithm,
-        )
-        latent_choice: Sample = ChoiceMapBuilder.a(self.addr, v)
-        return marginal.estimate_logpdf(key, latent_choice, *args)
 
 
 ################################
@@ -323,35 +278,21 @@ def marginal(
     gen_fn: Optional[GenerativeFunction] = None,
     /,
     *,
-    select_or_addr: Optional[Selection | Address] = None,
+    selection: Optional[Selection] = None,
     algorithm: Optional[Algorithm] = None,
 ) -> Callable | GenerativeFunction:
-    """If `select_or_addr` is a `Selection`, this constructs a `Marginal` distribution
-    which samples `Sample` objects with addresses given in the selection.
-    If `select_or_addr` is an address, this constructs a `ValueMarginal` distribution
-    which samples values of the type stored at the given address in `gen_fn`.
-    """
-
-    @Pytree.partial(select_or_addr)
+    @Pytree.partial(selection)
     def decorator(
-        select_or_addr: Optional[Selection | Address],
+        selection: Optional[Selection],
         gen_fn: GenerativeFunction,
-    ) -> Marginal | ValueMarginal:
-        if not select_or_addr:
-            select_or_addr = Selection.all()
-        if isinstance(select_or_addr, Selection):
-            marginal = Marginal(
-                gen_fn,
-                select_or_addr,
-                algorithm,
-            )
-        else:
-            marginal = ValueMarginal(
-                gen_fn,
-                select_or_addr,
-                algorithm,
-            )
-        return marginal
+    ) -> Marginal:
+        if not selection:
+            selection = Selection.all()
+        return Marginal(
+            gen_fn,
+            selection,
+            algorithm,
+        )
 
     if gen_fn is not None:
         return decorator(gen_fn)

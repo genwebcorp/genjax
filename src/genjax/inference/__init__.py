@@ -17,7 +17,6 @@ from genjax._src.inference.sp import (
     Marginal,
     SampleDistribution,
     Target,
-    ValueMarginal,
     marginal,
 )
 from genjax.inference import (
@@ -31,7 +30,6 @@ __all__ = [
     "Marginal",
     "SampleDistribution",
     "Target",
-    "ValueMarginal",
     "exact_testbed",
     "marginal",
     "smc",
