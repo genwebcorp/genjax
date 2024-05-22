@@ -573,6 +573,10 @@ class ChoiceMap(Sample, Constraint):
         """Convert a `ChoiceMap` to a `Selection`."""
         return select_choice_map(self)
 
+    @typecheck
+    def static_is_empty(self) -> Bool:
+        return self.choice_map_fn.static_is_empty()
+
     ###########
     # Dunders #
     ###########
@@ -741,6 +745,9 @@ class ChoiceMapFunction(Pytree):
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
         pass
 
+    def static_is_empty(self) -> Bool:
+        return False
+
     def __call__(self, addr: AddressComponent):
         value = self.get_value()
         submap = self.get_submap(addr)
@@ -754,6 +761,9 @@ class EmptyChmFn(ChoiceMapFunction):
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
         return ChoiceMap(EmptyChmFn())
+
+    def static_is_empty(self) -> Bool:
+        return True
 
 
 choice_map_empty = ChoiceMap(EmptyChmFn())
@@ -869,7 +879,15 @@ class XorChmFn(ChoiceMapFunction):
 
 @typecheck
 def choice_map_xor(c1: ChoiceMap, c2: ChoiceMap):
-    return ChoiceMap(XorChmFn(c1, c2))
+    return (
+        choice_map_empty
+        if c2.static_is_empty() and c1.static_is_empty()
+        else c1
+        if c2.static_is_empty()
+        else c2
+        if c1.static_is_empty()
+        else ChoiceMap(XorChmFn(c1, c2))
+    )
 
 
 @Pytree.dataclass
@@ -902,7 +920,15 @@ def choice_map_or(
     c1: ChoiceMap,
     c2: ChoiceMap,
 ) -> ChoiceMap:
-    return ChoiceMap(OrChmFn(c1, c2))
+    return (
+        choice_map_empty
+        if c2.static_is_empty() and c1.static_is_empty()
+        else c1
+        if c2.static_is_empty()
+        else c2
+        if c1.static_is_empty()
+        else ChoiceMap(OrChmFn(c1, c2))
+    )
 
 
 @Pytree.dataclass
@@ -924,13 +950,15 @@ def choice_map_masked(
     flag: Bool | BoolArray,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    if static_check_bool(flag):
-        if flag:
-            return c
-        else:
-            return choice_map_empty
-    else:
-        return ChoiceMap(MaskChmFn(flag, c))
+    return (
+        c
+        if c.static_is_empty()
+        else c
+        if static_check_bool(flag) and flag
+        else choice_map_empty
+        if static_check_bool(flag) and not flag
+        else ChoiceMap(MaskChmFn(flag, c))
+    )
 
 
 @Pytree.dataclass
