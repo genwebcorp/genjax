@@ -279,7 +279,7 @@ T = TypeVar("T", bound=Sample)
 
 class Trace(Pytree):
     """
-    `Trace` is the abstract superclass for traces of generative functions.
+    `Trace` is the type of traces of generative functions.
 
     A trace is a data structure used to represent sampled executions of
     generative functions. Traces track metadata associated with the probabilities
@@ -290,19 +290,11 @@ class Trace(Pytree):
 
     @abstractmethod
     def get_args(self) -> Tuple:
-        """Returns the arguments for the generative function invocation which
-        created the `Trace`.
-        """
+        """Returns the arguments for the generative function invocation which created the `Trace`."""
 
     @abstractmethod
     def get_retval(self) -> Retval:
-        """Returns the return value from the generative function invocation which
-        created the `Trace`.
-
-        Examples:
-            Here's an example using `genjax.normal` (a distribution). For distributions, the return value is the same as the (only) value in the returned choice map.
-
-        """
+        """Returns the return value from the generative function invocation which created the `Trace`."""
 
     @abstractmethod
     def get_score(self) -> Score:
@@ -339,16 +331,11 @@ class Trace(Pytree):
         $$
         s := \\log p(r, t; a) - \\log q(r; a)
         $$
-
-        Examples:
         """
 
     @abstractmethod
     def get_sample(self) -> T:
-        """Return a `Sample`, a representation of the sample from the measure denoted by the generative function.
-
-        Examples:
-        """
+        """Return a `Sample`, a representation of the sample from the distribution over samples which the generative function sampled to create the `Trace`."""
 
     # TODO: deprecated.
     def get_choices(self) -> Sample:
@@ -356,10 +343,7 @@ class Trace(Pytree):
 
     @abstractmethod
     def get_gen_fn(self) -> "GenerativeFunction":
-        """Returns the generative function whose invocation created the `Trace`.
-
-        Examples:
-        """
+        """Returns the generative function whose invocation created the `Trace`."""
         raise NotImplementedError
 
     def update(
@@ -525,7 +509,7 @@ class GenerativeFunction(Pytree):
     def update(
         self,
         key: PRNGKey,
-        trace: EmptyTrace | Trace,
+        trace: Trace,
         update_problem: UpdateProblem,
         argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:

@@ -71,20 +71,19 @@ GenJAX provides an abstract class called `Pytree` which automates the implementa
 
 The semantics of Gen are defined independently of any particular computational substrate or implementation - but JAX (and XLA through JAX) is a unique substrate, offering high performance, the ability to transformation code ahead-of-time via program transformations, and ... _a rather unique set of restrictions_.
 
+### JAX is a two-phase system
+
 While not yet formally modelled, it's appropriate to think of JAX as separating computation into two phases:
 
 * The _statics_ phase (which occurs at JAX tracing / transformation time).
 * The _runtime_ phase (which occurs when a computation written in JAX is actually deployed via XLA and executed on a physical device somewhere in the world).
 
-???+ note "More on statics vs. runtime"
 
-    JAX has different rules for handling values depending on which phase we are in.
+JAX has different rules for handling values depending on which phase we are in.
 
-    For instance, JAX disallows usage of runtime values to resolve Python control flow at tracing time (intuition: we don't actually know the value yet!) and will error if the user attempts to trace through a Python program with incorrect usage of runtime values.
+For instance, JAX disallows usage of runtime values to resolve Python control flow at tracing time (intuition: we don't actually know the value yet!) and will error if the user attempts to trace through a Python program with incorrect usage of runtime values.
 
-    In GenJAX, we take advantage of JAX's tracing to construct code which, when traced, produces specialized code _depending on static information_.
-
-    At the same time, we are careful to encode Gen's interfaces to respect JAX's rules which govern how static / runtime values can be used.
+In GenJAX, we take advantage of JAX's tracing to construct code which, when traced, produces specialized code _depending on static information_. At the same time, we are careful to encode Gen's interfaces to respect JAX's rules which govern how static / runtime values can be used.
 
 The most primitive way to encode _runtime uncertainty_ about a piece of data is to attach a `Bool` to it, which indicates whether the data is "on" or "off".
 

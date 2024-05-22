@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from genjax._src.generative_functions.distributions.custom import discrete_hmm
 from genjax._src.generative_functions.distributions.custom.discrete_hmm import (
     DiscreteHMM,
     DiscreteHMMConfiguration,
@@ -69,7 +68,6 @@ __all__ = [
     "categorical",
     "chi",
     "chi2",
-    "discrete_hmm",
     "exact_density",
     "flip",
     "forward_filtering_backward_sampling",

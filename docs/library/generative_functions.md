@@ -20,6 +20,14 @@ Distributions intentionally expose a permissive interface ([`random_weighted`](g
           - random_weighted
           - estimate_logpdf
 
+GenJAX exports a long list of exact density distributions, which uses the functionality of [`tfp.distributions`](https://www.tensorflow.org/probability/api_docs/python/tfp/distributions). A list of these is shown below.
+
+::: genjax.generative_functions.distributions
+    options:
+        show_root_heading: true
+        summary:
+          attributes: true
+
 ## `StaticGenerativeFunction`: a programmatic language
 
 For any serious work, you'll want a way to combine generative functions together, mixing deterministic functions with sampling. `StaticGenerativeFunction` is a way to do that: it supports the use of a JAX compatible subset of Python to author generative functions. It also supports the ability _to invoke_ other generative functions: instances of this type (and any other type of generative function) can then be used in larger generative programs.
@@ -33,7 +41,9 @@ For any serious work, you'll want a way to combine generative functions together
         - assess
         - update
 
-## Combinators: patterns for composition
+## Combinators: structured patterns of composition
+
+While the programmatic `StaticGenerativeFunction` language is powerful, its restrictions can be limiting. Combinators are a way to express common patterns of composition in a more concise way, and to gain access to effects which are common in JAX (like `jax.vmap`) for generative computations.
 
 ::: genjax.VmapCombinator
     options:
@@ -41,21 +51,25 @@ For any serious work, you'll want a way to combine generative functions together
         members:
         - gen_fn
         - in_axes
-        - simulate
-        - assess
         - update
 
 ::: genjax.ScanCombinator
     options:
         show_root_heading: true
+        members:
+        - update
 
 ::: genjax.SwitchCombinator
     options:
         show_root_heading: true
+        members:
+        - update
 
 ::: genjax.MaskCombinator
     options:
         show_root_heading: true
+        members:
+        - update
 
 ## Derived combinators
 
