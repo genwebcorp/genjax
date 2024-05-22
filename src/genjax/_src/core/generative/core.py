@@ -452,7 +452,6 @@ class GenerativeFunction(Pytree):
         import jax.tree_util as jtu
         from genjax import ChoiceMapBuilder as C
         from genjax import gen, uniform, flip, categorical
-        import gen.studio.plot as Plot
 
 
         @gen
@@ -478,7 +477,7 @@ class GenerativeFunction(Pytree):
         samples = jax.jit(jax.vmap(importance_sampling, in_axes=(0, None)))(
             sub_keys, C.kw(f1=True, f2=True)
         )
-        plt = Plot.rectY(samples["p"], Plot.binX({"y": "count"})) + Plot.ruleY()
+        print(samples.render_html())
         ```
     """
 
