@@ -427,6 +427,61 @@ class EmptyTrace(Trace):
 
 
 class GenerativeFunction(Pytree):
+    """
+    `GenerativeFunction` is the type of _generative functions_, the main computational object in Gen.
+
+    Generative functions are a type of probabilistic program. In terms of their specification, they come equipped with a few mathematical ingredients:
+
+    * $P(\\cdot_s, \\cdot_r; a)$ - a probability distribution over samples ($s$) and untraced randomness ($r$), indexed by arguments $a$.
+    * $K(...), L(...) = \\mathcal{F}(u)$ - a family of pairs of SMC kernels (referred to as K and L), indexed by [`UpdateProblem`][genjax.core.UpdateProblem] $u$:
+    * $f(s, r, a)$ - a deterministic return value function, which maps samples and untraced randomness to return values.
+
+    Generative functions also support a family of [`Target`][genjax.inference.Target] distributions - a [`Target`][genjax.inference.Target] distribution is a (possibly unnormalized) distribution typically induced by inference problems.
+
+    * $\\delta_\\emptyset$ - the empty target, whose only possible value is the empty sample, with density 1.
+    * $T_P(a, c)$ - a family of targets indexed by arguments $a$ and [`Constraint`][genjax.core.Constraint] $c$, created by pairing the distribution over samples $P$ with arguments and constraint.
+
+    Generative functions expose computations using these ingredients through the _generative function interface_ (the methods which are documented below).
+
+    Examples:
+        The interface methods can be used to implement inference algorithms directly - here's a simple example using bootstrap importance sampling directly:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        import jax
+        from jax.scipy.special import logsumexp
+        from jax.random import PRNGKey
+        import jax.tree_util as jtu
+        from genjax import ChoiceMapBuilder as C
+        from genjax import gen, uniform, flip, categorical
+        import gen.studio.plot as Plot
+
+
+        @gen
+        def model():
+            p = uniform(0.0, 1.0) @ "p"
+            f1 = flip(p) @ "f1"
+            f2 = flip(p) @ "f2"
+
+
+        # Bootstrap importance sampling.
+        def importance_sampling(key, constraint):
+            key, sub_key = jax.random.split(key)
+            sub_keys = jax.random.split(sub_key, 5)
+            tr, log_weights = jax.vmap(model.importance, in_axes=(0, None, None))(
+                sub_keys, constraint, ()
+            )
+            logits = log_weights - logsumexp(log_weights)
+            idx = categorical(logits)(key)
+            return jtu.tree_map(lambda v: v[idx], tr.get_sample())
+
+
+        sub_keys = jax.random.split(PRNGKey(0), 50)
+        samples = jax.jit(jax.vmap(importance_sampling, in_axes=(0, None)))(
+            sub_keys, C.kw(f1=True, f2=True)
+        )
+        plt = Plot.rectY(samples["p"], Plot.binX({"y": "count"})) + Plot.ruleY()
+        ```
+    """
+
     def __call__(self, *args, **kwargs) -> "GenerativeFunctionClosure":
         return GenerativeFunctionClosure(self, args, kwargs)
 

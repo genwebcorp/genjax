@@ -56,7 +56,7 @@ from genjax._src.generative_functions.static import (
     gen,
 )
 from genjax._src.inference.sp import (
-    InferenceAlgorithm,
+    Algorithm,
     SampleDistribution,
     Target,
 )
@@ -128,7 +128,7 @@ class ParticleCollection(Pytree):
 ####################################
 
 
-class SMCAlgorithm(InferenceAlgorithm):
+class SMCAlgorithm(Algorithm):
     """Abstract class for SMC algorithms."""
 
     @abstractmethod

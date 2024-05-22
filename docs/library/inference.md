@@ -1,19 +1,46 @@
 # Inference
 
-## Specifying inference problems from generative functions
+Conditioning probability distributions is a commonly desired operation, allowing users to express Bayesian inference problems. Conditioning is also a subroutine in other desired operations, like marginalization.
+
+## The language of inference
+
+In GenJAX, inference problems are specified by constructing [`Target`][genjax.inference.Target] distributions. Their solutions are approximated using [`Algorithm`][genjax.inference.Algorithm] families.
+
 
 ::: genjax.inference.Target
     options:
         show_root_heading: true
 
-Approximation solutions to inference problems are represented by `InferenceAlgorithm`:
+Algorithms inherit from a class called [`SampleDistribution`][genjax.inference.SampleDistribution] - these are objects which implement the _stochastic probability interface_ [[Lew23](https://dl.acm.org/doi/abs/10.1145/3591290)], meaning they expose methods to produce samples and samples from _density estimators_ for density computations.
 
-::: genjax.inference.InferenceAlgorithm
+::: genjax.inference.SampleDistribution
     options:
         show_root_heading: true
+        members:
+          - random_weighted
+          - estimate_logpdf
 
+`Algorithm` families implement the stochastic probability interface. Their [`Distribution`][genjax.Distribution] methods accept `Target` instances, and produce samples and density estimates for approximate posteriors.
+
+::: genjax.inference.Algorithm
+    options:
+        show_root_heading: true
+        members:
+          - random_weighted
+          - estimate_logpdf
+
+By virtue of the _stochastic probability interface_, GenJAX also exposes _marginalization_ as a first class concept.
+
+::: genjax.inference.Marginal
+    options:
+        show_root_heading: true
+        members:
+          - random_weighted
+          - estimate_logpdf
 
 ## The SMC inference library
+
+Sequential Monte Carlo (SMC) is a popular algorithm for performing approximate inference in probabilistic models.
 
 ::: genjax.inference.smc.SMCAlgorithm
     options:
@@ -53,7 +80,3 @@ Approximation solutions to inference problems are represented by `InferenceAlgor
 ::: genjax.inference.vi.QWake
     options:
         show_root_heading: true
-
-## Encapsulation: attaching inference logic to generative functions
-
-Gen makes it possible to attach inference logic as part of the internal proposal distribution family $Q(\cdot; u, a)$.

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from genjax._src.inference.sp import (
-    InferenceAlgorithm,
+    Algorithm,
     Marginal,
     SampleDistribution,
     Target,
@@ -27,7 +27,7 @@ from genjax.inference import (
 )
 
 __all__ = [
-    "InferenceAlgorithm",
+    "Algorithm",
     "Marginal",
     "SampleDistribution",
     "Target",

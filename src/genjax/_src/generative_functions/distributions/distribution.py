@@ -35,6 +35,7 @@ from genjax._src.core.generative import (
     MaskedProblem,
     ProjectProblem,
     Retdiff,
+    Retval,
     Sample,
     Selection,
     Trace,
@@ -489,7 +490,7 @@ class ExactDensity(Distribution):
         self,
         key: PRNGKey,
         *args,
-    ) -> Tuple[FloatArray, Any]:
+    ) -> Tuple[Weight, Retval]:
         v = self.sampler(key, *args)
         w = self.logpdf_evaluator(v, *args)
         return (w, v)
