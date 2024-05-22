@@ -28,6 +28,7 @@ from genjax._src.core.generative import (
     GenerativeFunctionClosure,
     ImportanceProblem,
     Retdiff,
+    Retval,
     Score,
     Selection,
     Trace,
@@ -287,7 +288,7 @@ class VmapCombinator(GenerativeFunction):
         self,
         sample: ChoiceMap,
         args: Tuple,
-    ) -> Tuple[Score, Any]:
+    ) -> Tuple[Score, Retval]:
         self._static_check_broadcastable(args)
         broadcast_dim_length = self._static_broadcast_dim_length(args)
         idx_array = jnp.arange(0, broadcast_dim_length)
@@ -296,9 +297,7 @@ class VmapCombinator(GenerativeFunction):
             submap = sample(idx)
             return self.gen_fn.assess(submap, args)
 
-        scores, retvals = jax.vmap(_assess, in_axes=(0, 0, None, self.in_axes))(
-            idx_array, args
-        )
+        scores, retvals = jax.vmap(_assess, in_axes=(0, self.in_axes))(idx_array, args)
         return jnp.sum(scores), retvals
 
 
