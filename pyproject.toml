@@ -48,7 +48,6 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.0.0"
 matplotlib = "^3.6.2"
-gen-studio = {git="https://github.com/probcomp/gen-studio"}
 mypy = "^0.991"
 nbmake = "^1.4.6"
 pytest = "^7.2.0"
