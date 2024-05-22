@@ -1,8 +1,7 @@
 # Journey to the center of `genjax.core`
 
-GenJAX consists of a _core_ set of functionality and datatypes, used to enforce consistent interfaces, build up generative functions, and ensure JAX compatibility. This page describes the set of core datatypes in GenJAX, including the core JAX compatibility datatypes ([`Pytree`][genjax.core.Pytree]), and the key Gen generative datatypes ([`GenerativeFunction`][genjax.core.GenerativeFunction], [`Trace`][genjax.core.Trace], [`Sample`][genjax.core.Sample], [`Constraint`][genjax.core.Constraint], and [`UpdateProblem`][genjax.core.UpdateProblem]).
 
-This page also describes GenJAX's approach to [full JAX compatibility](core.md#we-jax-everything-is-jax-compatible-by-default).
+This page describes the set of core concepts and datatypes in GenJAX, including Gen's generative datatypes and concepts ([`GenerativeFunction`][genjax.core.GenerativeFunction], [`Trace`][genjax.core.Trace], [`Sample`][genjax.core.Sample], [`Constraint`][genjax.core.Constraint], and [`UpdateProblem`][genjax.core.UpdateProblem]), the core JAX compatibility datatypes ([`Pytree`][genjax.core.Pytree]), as well as functionally inspired `Pytree` extensions ([`Mask`][genjax.core.Mask], [`Sum`][genjax.core.Sum]), and GenJAX's approach to JAX tracing time typecheck ([`typecheck`][genjax.typing.typecheck]).
 
 ## Generative types
 

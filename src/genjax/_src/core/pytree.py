@@ -86,11 +86,13 @@ class Pytree(pz.Struct):
             from genjax.typing import FloatArray, typecheck
             import jax.numpy as jnp
 
+
             @Pytree.dataclass
-            @typecheck # Enforces type annotations on instantiation.
+            @typecheck  # Enforces type annotations on instantiation.
             class MyClass(Pytree):
                 my_static_field: int = Pytree.static()
                 my_dynamic_field: FloatArray
+
 
             print(MyClass(10, jnp.array(5.0)).render_html())
             ```
@@ -110,10 +112,11 @@ class Pytree(pz.Struct):
         Examples:
             ```python exec="yes" html="true" source="material-block" session="core"
             @Pytree.dataclass
-            @typecheck # Enforces type annotations on instantiation.
+            @typecheck  # Enforces type annotations on instantiation.
             class MyClass(Pytree):
                 my_dynamic_field: FloatArray
                 my_static_field: int = Pytree.static(default=0)
+
 
             print(MyClass(jnp.array(5.0)).render_html())
             ```
@@ -403,6 +406,7 @@ class Const(Pytree):
         Instances of `Const` can be created using a `Pytree` classmethod:
         ```python exec="yes" html="true" source="material-block" session="core"
         from genjax import Pytree
+
         c = Pytree.const(5)
         print(c.render_html())
         ```
@@ -411,11 +415,13 @@ class Const(Pytree):
         ```python exec="yes" html="true" source="material-block" session="core"
         from genjax import Pytree
 
+
         def f(c):
             if c.const == 5:
                 return 10.0
             else:
                 return 5.0
+
 
         c = Pytree.const(5)
         r = jax.jit(f)(c)
@@ -439,13 +445,16 @@ class Closure(Pytree):
         Instances of `Closure` can be created using `Pytree.partial` -- note the order of the "closed over" arguments:
         ```python exec="yes" html="true" source="material-block" session="core"
         from genjax import Pytree
+
+
         def g(y):
-            @Pytree.partial(y) # dynamic values come first
+            @Pytree.partial(y)  # dynamic values come first
             def f(v, x):
                 # v will be bound to the value of y
                 return x * (v * 5.0)
 
             return f
+
 
         clos = jax.jit(g)(5.0)
         print(clos.render_html())

@@ -135,6 +135,7 @@ class SwitchCombinator(GenerativeFunction):
         import jax
         import genjax
 
+
         @genjax.gen
         def branch_1():
             x = genjax.normal(0.0, 1.0) @ "x1"

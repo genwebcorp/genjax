@@ -57,11 +57,13 @@ class Target(Pytree):
         from genjax import ChoiceMapBuilder as C
         from genjax.inference import Target
 
+
         @genjax.gen
         def model():
             x = genjax.normal(0.0, 1.0) @ "x"
             y = genjax.normal(x, 1.0) @ "y"
             return x
+
 
         target = Target(model, (), C["y"].set(3.0))
         print(target.render_html())

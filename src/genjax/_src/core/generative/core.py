@@ -468,10 +468,12 @@ class GenerativeFunction(Pytree):
             from jax.random import PRNGKey
             from jax.random import split
 
+
             @genjax.gen
             def model():
                 x = genjax.normal(0.0, 1.0) @ "x"
                 return x
+
 
             key = PRNGKey(0)
             tr = model.simulate(key, ())
@@ -484,6 +486,7 @@ class GenerativeFunction(Pytree):
             def model():
                 x = genjax.normal(0.0, 1.0) @ "x"
                 return x
+
 
             key = PRNGKey(0)
             tr = model.repeat(num_repeats=10).simulate(key, ())

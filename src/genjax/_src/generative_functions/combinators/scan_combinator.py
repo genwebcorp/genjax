@@ -127,14 +127,17 @@ class ScanCombinator(GenerativeFunction):
         import jax
         import genjax
 
+
         # A kernel_gen_fn generative function.
         @genjax.gen
         def random_walk(prev):
             x = genjax.normal(prev, 1.0) @ "x"
             return x
 
+
         # You can apply the Scan combinator directly like this:
         scan_gen_fned_random_walk = random_walk.scan(max_length=1000)
+
 
         # You can also use the decorator when declaring the function:
         @genjax.scan_combinator(max_length=1000)
@@ -142,6 +145,7 @@ class ScanCombinator(GenerativeFunction):
         def random_walk(prev, xs):
             x = genjax.normal(prev, 1.0) @ "x"
             return x, None
+
 
         init = 0.5
         key = jax.random.PRNGKey(314159)

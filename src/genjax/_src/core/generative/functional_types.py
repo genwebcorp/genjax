@@ -25,7 +25,6 @@ from genjax._src.core.interpreters.staging import (
 from genjax._src.core.pytree import Pytree
 from genjax._src.core.typing import (
     Any,
-    ArrayLike,
     BoolArray,
     Callable,
     Int,
@@ -128,15 +127,82 @@ class Mask(Pytree):
 
 @Pytree.dataclass(match_args=True)
 class Sum(Pytree):
+    """
+    A `Sum` instance represents a sum type, which is a union of possible values - which value is active is determined by the `Sum.idx` field.
+
+    The `Sum` type is used to represent a choice between multiple possible values, and is used in generative computations to represent uncertainty over values.
+
+    Examples:
+        A common scenario which will produce `Sum` types is when using a `SwitchCombinator` with branches that have
+        multiple possible return value types:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        from genjax import gen, normal, bernoulli
+
+
+        @gen
+        def model1():
+            return normal(0.0, 1.0) @ "x"
+
+
+        @gen
+        def model2():
+            z = bernoulli(0.5) @ "z"
+            return (z, z)
+
+
+        tr = jax.jit(model1.switch([model2]).simulate)(key, (1, (), ()))
+        print(tr.get_retval().render_html())
+        ```
+
+        Users can collapse the `Sum` type by consuming it via [`jax.lax.switch`](https://jax.readthedocs.io/en/latest/_autosummary/jax.lax.switch.html), for instance:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        def collapsing_a_sum_type(key, idx):
+            tr = model1.switch([model2]).simulate(key, (idx, (), ()))
+            sum = tr.get_retval()
+            v = jax.lax.switch(
+                sum.idx,
+                [
+                    lambda: sum.values[0] + 3.0,
+                    lambda: 1.0 + sum.values[1][0] + sum.values[1][1],
+                ],
+            )
+            return v
+
+
+        x = jax.jit(collapsing_a_sum_type)(key, 1)
+        print(x)
+        ```
+
+        Users can index into the `Sum` type using a **static** integer index, creating a `Mask` type:
+        ```python exec="yes" html="true" source="material-block" session="core"
+        from genjax import Sum
+
+
+        def uncertain_idx(idx):
+            s = Sum(idx, [1, 2, 3])
+            return s[2]
+
+
+        mask = jax.jit(uncertain_idx)(1)
+        print(mask.render_html())
+        ```
+    """
+
     idx: IntArray | Diff
+    """
+    The runtime index tag for which value in `Sum.values` is active.
+    """
     values: List
+    """
+    The possible values for the `Sum` instance.
+    """
 
     @classmethod
     @typecheck
     def maybe(
         cls,
         idx: Int | IntArray | Diff,
-        vs: List[ArrayLike | Pytree],
+        vs: List,
     ):
         return (
             vs[idx]
@@ -149,7 +215,7 @@ class Sum(Pytree):
     def maybe_none(
         cls,
         idx: Int | IntArray | Diff,
-        vs: List[None | ArrayLike | Pytree],
+        vs: List,
     ):
         possibles = []
         for _idx, v in enumerate(vs):
@@ -168,3 +234,7 @@ class Sum(Pytree):
             return tree_map(lambda *vs: jnp.choose(idx, vs, mode="wrap"), *self.values)
         else:
             return self
+
+    @typecheck
+    def __getitem__(self, idx: Int):
+        return Mask.maybe_none(idx == self.idx, self.values[idx])
