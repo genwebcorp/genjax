@@ -103,3 +103,17 @@ class TestVmapCombinator:
 
         key = jax.random.PRNGKey(314159)
         _ = jax.jit(foo.simulate)(key, (10.0, (jnp.arange(3.0), 1.0)))
+
+    def test_vmap_combinator_assess(self):
+        @genjax.vmap_combinator(in_axes=(0,))
+        @genjax.gen
+        def model(x):
+            z = genjax.normal(x, 1.0) @ "z"
+            return z
+
+        key = jax.random.PRNGKey(314159)
+        map_over = jnp.arange(0, 50, dtype=float)
+        tr = jax.jit(model.simulate)(key, (map_over,))
+        sample = tr.get_sample()
+        map_score = tr.get_score()
+        assert model.assess(sample, (map_over,))[0] == map_score
