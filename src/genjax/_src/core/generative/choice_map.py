@@ -933,11 +933,11 @@ def choice_map_filtered(
 
 @Pytree.dataclass
 class AddrFnChm(ChoiceMap):
-    c: ChoiceMap
-    addr_fn: dict = Pytree.static()
+    addr_mapping: dict = Pytree.static()
+    c: ChoiceMap = Pytree.field()
 
     def get_value(self) -> Bool | BoolArray:
-        mapped = self.addr_fn.get((), ())
+        mapped = self.addr_mapping.get((), ())
         if mapped:
             submap = self.c.get_submap(mapped)
             return submap.get_value()
@@ -945,11 +945,11 @@ class AddrFnChm(ChoiceMap):
             return self.c.get_value()
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
-        if ... in self.addr_fn:
-            mapped = self.addr_fn[...]
+        if ... in self.addr_mapping:
+            mapped = self.addr_mapping[...]
             return self.c.get_submap(mapped).get_submap(addr)
         else:
-            mapped = self.addr_fn.get(addr, addr)
+            mapped = self.addr_mapping.get(addr, addr)
             if mapped is ...:
                 return self.c
             return self.c.get_submap(mapped)
@@ -960,4 +960,4 @@ def choice_map_address_function(
     addr_fn: dict,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return choice_map_empty if c.static_is_empty() else AddrFnChm(c, addr_fn)
+    return choice_map_empty if c.static_is_empty() else AddrFnChm(addr_fn, c)
