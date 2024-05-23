@@ -1001,6 +1001,8 @@ class AddrFnChmFn(ChoiceMapFunction):
             return self.c.get_submap(mapped).get_submap(addr)
         else:
             mapped = self.addr_fn.get(addr, addr)
+            if mapped is ...:
+                return self.c
             return self.c.get_submap(mapped)
 
 

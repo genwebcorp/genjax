@@ -15,8 +15,9 @@
 
 from genjax._src.core.generative import (
     ChoiceMap,
-    Constraint,
+    EmptyTrace,
     GenerativeFunction,
+    ImportanceProblem,
     Retdiff,
     Sample,
     Score,
@@ -90,25 +91,23 @@ class AddressBijectionCombinator(GenerativeFunction):
         tr = self.gen_fn.simulate(key, args)
         return AddressBijectionTrace(self, tr)
 
-    @GenerativeFunction.gfi_boundary
     @typecheck
-    def importance(
+    def update_importance(
         self,
         key: PRNGKey,
-        constraint: Constraint,
-        args: Tuple,
-    ) -> Tuple[Trace, Weight, UpdateProblem]:
-        match constraint:
-            case ChoiceMap():
-                inner_constraint = constraint.addr_fn(self.get_inverse())
-                tr, w, inner_bwd_problem = self.gen_fn.importance(
-                    key, inner_constraint, args
-                )
-                assert isinstance(inner_bwd_problem, ChoiceMap)
-                bwd_problem = inner_bwd_problem.addr_fn(self.address_bijection)
-                return AddressBijectionTrace(self, tr), w, bwd_problem
-            case _:
-                raise ValueError(f"Not handled constraint: {constraint}")
+        chm: ChoiceMap,
+        argdiffs: Tuple,
+    ):
+        inner_problem = chm.addr_fn(self.get_inverse())
+        tr, w, retdiff, inner_bwd_problem = self.gen_fn.update(
+            key,
+            EmptyTrace(self.gen_fn),
+            ImportanceProblem(inner_problem),
+            argdiffs,
+        )
+        assert isinstance(inner_bwd_problem, ChoiceMap)
+        bwd_problem = inner_bwd_problem.addr_fn(self.address_bijection)
+        return AddressBijectionTrace(self, tr), w, retdiff, bwd_problem
 
     def update_choice_map(
         self,
@@ -137,6 +136,9 @@ class AddressBijectionCombinator(GenerativeFunction):
         match update_problem:
             case ChoiceMap():
                 return self.update_choice_map(key, trace, update_problem, argdiffs)
+
+            case ImportanceProblem(constraint):
+                return self.update_importance(key, constraint, argdiffs)
 
             case _:
                 raise ValueError(f"Unrecognized update problem: {update_problem}")
