@@ -19,7 +19,7 @@ jobs:
     - name: Install and configure Poetry
       uses: snok/install-poetry@v1
 
-    - run: poetry install
+    - run: poetry install --with dev --all-extras
 
     - uses: jakebailey/pyright-action@v1
       with:

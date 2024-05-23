@@ -579,6 +579,10 @@ class ChoiceMap(Sample, Constraint):
         """Convert a `ChoiceMap` to a `Selection`."""
         return select_choice_map(self)
 
+    @typecheck
+    def static_is_empty(self) -> Bool:
+        return self.choice_map_fn.static_is_empty()
+
     ###########
     # Dunders #
     ###########
@@ -608,13 +612,6 @@ class ChoiceMap(Sample, Constraint):
         addr = addr if isinstance(addr, tuple) else (addr,)
         submap = self(addr)
         v = submap.get_value()
-        # Aggressively unwrap functional types.
-        # This _can_ throw an error, but the user
-        # is asking for it.
-        # TODO: providing error handling here
-        # to make what is happening transparent.
-        if isinstance(v, Mask):
-            v = v.unmask()
         if v is None:
             raise ChoiceMapNoValueAtAddress(addr)
         else:
@@ -744,6 +741,9 @@ class ChoiceMapFunction(Pytree):
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
         pass
 
+    def static_is_empty(self) -> Bool:
+        return False
+
     def __call__(self, addr: AddressComponent):
         value = self.get_value()
         submap = self.get_submap(addr)
@@ -757,6 +757,9 @@ class EmptyChmFn(ChoiceMapFunction):
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
         return ChoiceMap(EmptyChmFn())
+
+    def static_is_empty(self) -> Bool:
+        return True
 
 
 choice_map_empty = ChoiceMap(EmptyChmFn())
@@ -818,7 +821,7 @@ def choice_map_idx(
     addr: DynamicAddressComponent,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return ChoiceMap(IdxChmFn(addr, c))
+    return choice_map_empty if c.static_is_empty() else ChoiceMap(IdxChmFn(addr, c))
 
 
 @Pytree.dataclass
@@ -839,7 +842,7 @@ def choice_map_static(
     addr: AddressComponent,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return ChoiceMap(StaticChmFn(addr, c))
+    return choice_map_empty if c.static_is_empty() else ChoiceMap(StaticChmFn(addr, c))
 
 
 @Pytree.dataclass
@@ -871,8 +874,19 @@ class XorChmFn(ChoiceMapFunction):
 
 
 @typecheck
-def choice_map_xor(c1: ChoiceMap, c2: ChoiceMap):
-    return ChoiceMap(XorChmFn(c1, c2))
+def choice_map_xor(
+    c1: ChoiceMap,
+    c2: ChoiceMap,
+) -> ChoiceMap:
+    match (c1.static_is_empty(), c2.static_is_empty()):
+        case True, True:
+            return choice_map_empty
+        case _, True:
+            return c1
+        case True, _:
+            return c2
+        case _:
+            return ChoiceMap(XorChmFn(c1, c2))
 
 
 @Pytree.dataclass
@@ -905,7 +919,15 @@ def choice_map_or(
     c1: ChoiceMap,
     c2: ChoiceMap,
 ) -> ChoiceMap:
-    return ChoiceMap(OrChmFn(c1, c2))
+    match (c1.static_is_empty(), c2.static_is_empty()):
+        case True, True:
+            return choice_map_empty
+        case _, True:
+            return c1
+        case True, _:
+            return c2
+        case _:
+            return ChoiceMap(OrChmFn(c1, c2))
 
 
 @Pytree.dataclass
@@ -927,13 +949,15 @@ def choice_map_masked(
     flag: Bool | BoolArray,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    if static_check_bool(flag):
-        if flag:
-            return c
-        else:
-            return choice_map_empty
-    else:
-        return ChoiceMap(MaskChmFn(flag, c))
+    return (
+        c
+        if c.static_is_empty()
+        else c
+        if static_check_bool(flag) and flag
+        else choice_map_empty
+        if static_check_bool(flag) and not flag
+        else ChoiceMap(MaskChmFn(flag, c))
+    )
 
 
 @Pytree.dataclass
@@ -944,7 +968,7 @@ class FilteredChmFn(ChoiceMapFunction):
     def get_value(self) -> Optional[Any]:
         v = self.c.get_value()
         sel_check = self.selection[()]
-        return Mask.maybe(sel_check, v)
+        return Mask.maybe_none(sel_check, v)
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
         submap = self.c.get_submap(addr)
@@ -957,7 +981,11 @@ def choice_map_filtered(
     selection: Selection,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return ChoiceMap(FilteredChmFn(selection, c))
+    return (
+        choice_map_empty
+        if c.static_is_empty()
+        else ChoiceMap(FilteredChmFn(selection, c))
+    )
 
 
 @Pytree.dataclass
@@ -979,6 +1007,8 @@ class AddrFnChmFn(ChoiceMapFunction):
             return self.c.get_submap(mapped).get_submap(addr)
         else:
             mapped = self.addr_fn.get(addr, addr)
+            if mapped is ...:
+                return self.c
             return self.c.get_submap(mapped)
 
 
@@ -986,5 +1016,7 @@ class AddrFnChmFn(ChoiceMapFunction):
 def choice_map_address_function(
     addr_fn: dict,
     c: ChoiceMap,
-):
-    return ChoiceMap(AddrFnChmFn(c, addr_fn))
+) -> ChoiceMap:
+    return (
+        choice_map_empty if c.static_is_empty() else ChoiceMap(AddrFnChmFn(c, addr_fn))
+    )

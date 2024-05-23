@@ -605,7 +605,7 @@ class StaticGenerativeFunction(GenerativeFunction):
 
 
 @typecheck
-def gen(f: Callable) -> GenerativeFunction:
+def gen(f: Callable) -> StaticGenerativeFunction:
     if isinstance(f, Closure):
         return StaticGenerativeFunction(f)
     else:

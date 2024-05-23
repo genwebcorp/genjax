@@ -68,15 +68,21 @@ class Mask(Pytree):
     def maybe(cls, f: BoolArray, v: Any):
         match v:
             case Mask(flag, value):
-                return Mask(staged_and(f, flag), value)
+                return Mask.maybe_none(staged_and(f, flag), value)
             case _:
-                return v if static_check_bool(f) and f else Mask(f, v)
+                return Mask(f, v)
 
     @classmethod
     def maybe_none(cls, f: BoolArray, v: Any):
-        if v is None or (static_check_bool(f) and not f):
-            return None
-        return Mask.maybe(f, v)
+        return (
+            None
+            if v is None
+            else v
+            if static_check_bool(f) and f
+            else None
+            if static_check_bool(f)
+            else Mask.maybe(f, v)
+        )
 
     ######################
     # Masking interfaces #
@@ -220,7 +226,7 @@ class Sum(Pytree):
         possibles = []
         for _idx, v in enumerate(vs):
             if v is not None:
-                possibles.append(Mask.maybe(idx == _idx, v))
+                possibles.append(Mask.maybe_none(idx == _idx, v))
         if not possibles:
             return None
         if len(possibles) == 1:

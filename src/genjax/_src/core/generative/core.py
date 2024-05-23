@@ -646,7 +646,10 @@ class GenerativeFunction(Pytree):
         """
         importance_problem = ImportanceProblem(constraint)
         tr, w, _, _ = self.update(
-            key, EmptyTrace(self), importance_problem, Diff.unknown_change(args)
+            key,
+            EmptyTrace(self),
+            importance_problem,
+            Diff.unknown_change(args),
         )
         return tr, w
 
@@ -682,7 +685,7 @@ class GenerativeFunction(Pytree):
         self,
         *args,
         in_axes=0,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import vmap_combinator
 
         return (
@@ -695,7 +698,7 @@ class GenerativeFunction(Pytree):
         self,
         *args,
         num_repeats: Int,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import repeat_combinator
 
         return (
@@ -708,7 +711,7 @@ class GenerativeFunction(Pytree):
         self,
         *args,
         max_length: Int,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import scan_combinator
 
         return (
@@ -720,7 +723,7 @@ class GenerativeFunction(Pytree):
     def mask(
         self,
         *args,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import mask_combinator
 
         return mask_combinator(self)(*args) if args else mask_combinator(self)
@@ -729,7 +732,7 @@ class GenerativeFunction(Pytree):
         self,
         gen_fn: "GenerativeFunction",
         *args,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import cond_combinator
 
         return (
@@ -742,7 +745,7 @@ class GenerativeFunction(Pytree):
         self,
         address_bijection: dict,
         *args,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import address_bijection_combinator
 
         return (
@@ -757,7 +760,7 @@ class GenerativeFunction(Pytree):
         self,
         branches: List["GenerativeFunction"],
         *args,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import switch_combinator
 
         return (
@@ -770,7 +773,7 @@ class GenerativeFunction(Pytree):
         self,
         gen_fn: "GenerativeFunction",
         *args,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import mixture_combinator
 
         return (
@@ -783,7 +786,7 @@ class GenerativeFunction(Pytree):
         self,
         *args,
         **kwargs,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax.inference.smc import attach_combinator
 
         return (
@@ -801,7 +804,7 @@ class GenerativeFunction(Pytree):
         *args,
         select_or_addr: Optional[Any] = None,
         algorithm: Optional[Any] = None,
-    ) -> "GenerativeFunction | GenerativeFunctionClosure":
+    ) -> "GenerativeFunction":
         from genjax import marginal
 
         return (

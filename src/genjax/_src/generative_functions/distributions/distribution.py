@@ -13,7 +13,7 @@
 # limitations under the License.
 """This module contains the `Distribution` abstract base class."""
 
-import abc
+from abc import abstractmethod
 
 import jax
 import jax.numpy as jnp
@@ -93,7 +93,7 @@ class DistributionTrace(
 
 
 class Distribution(GenerativeFunction):
-    @abc.abstractmethod
+    @abstractmethod
     def random_weighted(
         self,
         key: PRNGKey,
@@ -101,7 +101,7 @@ class Distribution(GenerativeFunction):
     ) -> Tuple[FloatArray, Any]:
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def estimate_logpdf(
         self,
         key: PRNGKey,
@@ -463,26 +463,30 @@ class Distribution(GenerativeFunction):
 ################
 
 
-@Pytree.dataclass
 class ExactDensity(Distribution):
-    sampler: Closure
-    logpdf_evaluator: Closure
+    @abstractmethod
+    def sample(self, key: PRNGKey, *args):
+        raise NotImplementedError
+
+    @abstractmethod
+    def logpdf(self, v: Retval, *args):
+        raise NotImplementedError
 
     def __abstract_call__(self, *args):
         key = jax.random.PRNGKey(0)
-        return self.sampler(key, *args)
+        return self.sample(key, *args)
 
     def handle_kwargs(self) -> GenerativeFunction:
         @Pytree.partial(self)
-        def sampler_with_kwargs(self, key, args, kwargs):
-            return self.sampler(key, *args, **kwargs)
+        def sample_with_kwargs(self, key, args, kwargs):
+            return self.sample(key, *args, **kwargs)
 
         @Pytree.partial(self)
         def logpdf_with_kwargs(self, v, args, kwargs):
-            return self.logpdf_evaluator(v, *args, **kwargs)
+            return self.logpdf(v, *args, **kwargs)
 
-        return ExactDensity(
-            sampler_with_kwargs,
+        return ExactDensityFromCallables(
+            sample_with_kwargs,
             logpdf_with_kwargs,
         )
 
@@ -490,9 +494,9 @@ class ExactDensity(Distribution):
         self,
         key: PRNGKey,
         *args,
-    ) -> Tuple[Weight, Retval]:
-        v = self.sampler(key, *args)
-        w = self.logpdf_evaluator(v, *args)
+    ) -> Tuple[FloatArray, Any]:
+        v = self.sample(key, *args)
+        w = self.logpdf(v, *args)
         return (w, v)
 
     def estimate_logpdf(
@@ -501,7 +505,7 @@ class ExactDensity(Distribution):
         v: Any,
         *args,
     ) -> FloatArray:
-        w = self.logpdf_evaluator(v, *args)
+        w = self.logpdf(v, *args)
         if w.shape:
             return jnp.sum(w)
         else:
@@ -534,15 +538,27 @@ class ExactDensity(Distribution):
                 return w, v
 
 
+@Pytree.dataclass
+class ExactDensityFromCallables(ExactDensity):
+    sampler: Closure
+    logpdf_evaluator: Closure
+
+    def sample(self, key, *args):
+        return self.sampler(key, *args)
+
+    def logpdf(self, v, *args):
+        return self.logpdf_evaluator(v, *args)
+
+
 @typecheck
 def exact_density(
-    sampler: Callable,
+    sample: Callable,
     logpdf: Callable,
 ):
-    if not isinstance(sampler, Closure):
-        sampler = Pytree.partial()(sampler)
+    if not isinstance(sample, Closure):
+        sample = Pytree.partial()(sample)
 
     if not isinstance(logpdf, Closure):
         logpdf = Pytree.partial()(logpdf)
 
-    return ExactDensity(sampler, logpdf)
+    return ExactDensityFromCallables(sample, logpdf)
