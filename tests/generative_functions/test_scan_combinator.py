@@ -48,9 +48,9 @@ class TestScanSimpleNormal:
             tr, w = jax.jit(scanner.importance)(
                 sub_key, C[i, "z"].set(0.5), (0.01, None)
             )
-            assert tr.get_sample()[i, "z"] == 0.5
-            value = tr.get_sample()[i, "z"]
-            prev = tr.get_sample()[i - 1, "z"]
+            assert tr.get_sample()[i, "z"].unmask() == 0.5
+            value = tr.get_sample()[i, "z"].unmask()
+            prev = tr.get_sample()[i - 1, "z"].unmask()
             assert w == genjax.normal.assess(C.v(value), (prev, 1.0))[0]
 
     def test_scan_simple_normal_update(self):
@@ -72,5 +72,5 @@ class TestScanSimpleNormal:
                 C[i, "z"].set(1.0),
                 Diff.no_change((0.01, None)),
             )
-            assert new_tr.get_sample()[i, "z"] == 1.0
+            assert new_tr.get_sample()[i, "z"].unmask() == 1.0
             assert tr.get_score() + w == pytest.approx(new_tr.get_score(), 0.0001)
