@@ -105,6 +105,11 @@ kumaraswamy = tfp_distribution(tfd.Kumaraswamy)
 A `tfp_distribution` generative function which wraps the [`tfd.Kumaraswamy`](https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/Kumaraswamy) distribution from TensorFlow Probability distributions.
 """
 
+laplace = tfp_distribution(tfd.Laplace)
+"""
+A `tfp_distribution` generative function which wraps the [`tfd.Laplace`](https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/Laplace) distribution from TensorFlow Probability distributions.
+"""
+
 logit_normal = tfp_distribution(tfd.LogitNormal)
 """
 A `tfp_distribution` generative function which wraps the [`tfd.LogitNormal`](https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/LogitNormal) distribution from TensorFlow Probability distributions.
