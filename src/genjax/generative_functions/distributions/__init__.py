@@ -21,6 +21,7 @@ from genjax._src.generative_functions.distributions.custom.discrete_hmm import (
 from genjax._src.generative_functions.distributions.distribution import (
     Distribution,
     ExactDensity,
+    ExactDensityFromCallables,
     exact_density,
 )
 from genjax._src.generative_functions.distributions.tensorflow_probability import (
@@ -38,6 +39,7 @@ from genjax._src.generative_functions.distributions.tensorflow_probability impor
     half_student_t,
     inverse_gamma,
     kumaraswamy,
+    laplace,
     logit_normal,
     moyal,
     multinomial,
@@ -49,6 +51,7 @@ from genjax._src.generative_functions.distributions.tensorflow_probability impor
     power_spherical,
     skellam,
     student_t,
+    tfp_distribution,
     truncated_cauchy,
     truncated_normal,
     uniform,
@@ -63,6 +66,7 @@ __all__ = [
     "DiscreteHMMConfiguration",
     "Distribution",
     "ExactDensity",
+    "ExactDensityFromCallables",
     "bates",
     "bernoulli",
     "beta",
@@ -80,6 +84,7 @@ __all__ = [
     "half_student_t",
     "inverse_gamma",
     "kumaraswamy",
+    "laplace",
     "logit_normal",
     "moyal",
     "multinomial",
@@ -91,6 +96,7 @@ __all__ = [
     "power_spherical",
     "skellam",
     "student_t",
+    "tfp_distribution",
     "truncated_cauchy",
     "truncated_normal",
     "uniform",

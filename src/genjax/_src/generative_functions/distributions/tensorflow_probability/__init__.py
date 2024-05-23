@@ -15,25 +15,22 @@
 
 from tensorflow_probability.substrates import jax as tfp
 
-from genjax._src.core.pytree import Pytree
 from genjax._src.core.typing import Callable
-from genjax._src.generative_functions.distributions.distribution import ExactDensity
+from genjax._src.generative_functions.distributions.distribution import exact_density
 
 tfd = tfp.distributions
 
 
 def tfp_distribution(dist: Callable):
-    @Pytree.partial()
     def sampler(key, *args, **kwargs):
         d = dist(*args, **kwargs)
         return d.sample(seed=key)
 
-    @Pytree.partial()
     def logpdf(v, *args, **kwargs):
         d = dist(*args, **kwargs)
         return d.log_prob(v)
 
-    return ExactDensity(sampler, logpdf)
+    return exact_density(sampler, logpdf)
 
 
 #####################
@@ -103,6 +100,11 @@ A `tfp_distribution` generative function which wraps the [`tfd.InverseGamma`](ht
 kumaraswamy = tfp_distribution(tfd.Kumaraswamy)
 """
 A `tfp_distribution` generative function which wraps the [`tfd.Kumaraswamy`](https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/Kumaraswamy) distribution from TensorFlow Probability distributions.
+"""
+
+laplace = tfp_distribution(tfd.Laplace)
+"""
+A `tfp_distribution` generative function which wraps the [`tfd.Laplace`](https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/Laplace) distribution from TensorFlow Probability distributions.
 """
 
 logit_normal = tfp_distribution(tfd.LogitNormal)
