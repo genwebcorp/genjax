@@ -21,7 +21,7 @@ import pytest
 from genjax import ChoiceMapBuilder as C
 from genjax import Diff, Pytree
 from genjax.generative_functions.static import AddressReuse
-from genjax.typing import FloatArray
+from genjax.typing import Float, FloatArray
 
 #############
 # Datatypes #
@@ -484,8 +484,8 @@ class TestStaticGenFnUpdate:
     def test_update_pytree_argument(self):
         @Pytree.dataclass
         class SomePytree(genjax.Pytree):
-            x: FloatArray
-            y: FloatArray
+            x: Float | FloatArray
+            y: Float | FloatArray
 
         @genjax.gen
         def simple_linked_normal_with_tree_argument(tree):
