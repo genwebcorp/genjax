@@ -54,7 +54,7 @@ class AddressBijectionTrace(Trace):
 
     def get_sample(self) -> Sample:
         sample: ChoiceMap = self.inner.get_sample()
-        return sample.addr_fn(self.gen_fn.address_bijection)
+        return sample.with_addr_map(self.gen_fn.address_bijection)
 
     def get_score(self):
         return self.inner.get_score()
@@ -98,7 +98,7 @@ class AddressBijectionCombinator(GenerativeFunction):
         chm: ChoiceMap,
         argdiffs: Tuple,
     ):
-        inner_problem = chm.addr_fn(self.get_inverse())
+        inner_problem = chm.with_addr_map(self.get_inverse())
         tr, w, retdiff, inner_bwd_problem = self.gen_fn.update(
             key,
             EmptyTrace(self.gen_fn),
@@ -106,7 +106,7 @@ class AddressBijectionCombinator(GenerativeFunction):
             argdiffs,
         )
         assert isinstance(inner_bwd_problem, ChoiceMap)
-        bwd_problem = inner_bwd_problem.addr_fn(self.address_bijection)
+        bwd_problem = inner_bwd_problem.with_addr_map(self.address_bijection)
         return AddressBijectionTrace(self, tr), w, retdiff, bwd_problem
 
     def update_choice_map(
@@ -116,12 +116,12 @@ class AddressBijectionCombinator(GenerativeFunction):
         chm: ChoiceMap,
         argdiffs: Tuple,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
-        inner_problem = chm.addr_fn(self.get_inverse())
+        inner_problem = chm.with_addr_map(self.get_inverse())
         tr, w, retdiff, inner_bwd_problem = self.gen_fn.update(
             key, trace.inner, inner_problem, argdiffs
         )
         assert isinstance(inner_bwd_problem, ChoiceMap)
-        bwd_problem = inner_bwd_problem.addr_fn(self.address_bijection)
+        bwd_problem = inner_bwd_problem.with_addr_map(self.address_bijection)
         return AddressBijectionTrace(self, tr), w, retdiff, bwd_problem
 
     @GenerativeFunction.gfi_boundary
@@ -152,7 +152,7 @@ class AddressBijectionCombinator(GenerativeFunction):
     ) -> Tuple[Score, Any]:
         match sample:
             case ChoiceMap():
-                inner_sample = sample.addr_fn(self.get_inverse())
+                inner_sample = sample.with_addr_map(self.get_inverse())
                 return self.gen_fn.assess(inner_sample, args)
             case _:
                 raise ValueError(f"Not handled sample: {sample}")
