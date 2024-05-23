@@ -71,13 +71,19 @@ class Mask(Pytree):
             case Mask(flag, value):
                 return Mask(staged_and(f, flag), value)
             case _:
-                return v if static_check_bool(f) and f else Mask(f, v)
+                return v
 
     @classmethod
     def maybe_none(cls, f: BoolArray, v: Any):
-        if v is None or (static_check_bool(f) and not f):
-            return None
-        return Mask.maybe(f, v)
+        return (
+            None
+            if v is None
+            else v
+            if static_check_bool(f) and f
+            else None
+            if static_check_bool(f)
+            else Mask(f, v)
+        )
 
     ######################
     # Masking interfaces #
