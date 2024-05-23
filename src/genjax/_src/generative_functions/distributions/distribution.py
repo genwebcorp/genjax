@@ -37,6 +37,7 @@ from genjax._src.core.generative import (
     Retdiff,
     Retval,
     Sample,
+    Score,
     Selection,
     Trace,
     UpdateProblem,
@@ -98,7 +99,7 @@ class Distribution(GenerativeFunction):
         self,
         key: PRNGKey,
         *args,
-    ) -> Tuple[FloatArray, Any]:
+    ) -> Tuple[Score, Retval]:
         pass
 
     @abstractmethod
@@ -107,7 +108,7 @@ class Distribution(GenerativeFunction):
         key: PRNGKey,
         v: Any,
         *args,
-    ) -> FloatArray:
+    ) -> Weight:
         pass
 
     @GenerativeFunction.gfi_boundary
@@ -494,7 +495,10 @@ class ExactDensity(Distribution):
         self,
         key: PRNGKey,
         *args,
-    ) -> Tuple[FloatArray, Any]:
+    ) -> Tuple[Score, Retval]:
+        """
+        Given arguments to the distribution, sample from the distribution, and return the exact log density of the sample, and the sample.
+        """
         v = self.sample(key, *args)
         w = self.logpdf(v, *args)
         return (w, v)
@@ -504,7 +508,10 @@ class ExactDensity(Distribution):
         key: PRNGKey,
         v: Any,
         *args,
-    ) -> FloatArray:
+    ) -> Weight:
+        """
+        Given a sample and arguments to the distribution, return the exact log density of the sample.
+        """
         w = self.logpdf(v, *args)
         if w.shape:
             return jnp.sum(w)

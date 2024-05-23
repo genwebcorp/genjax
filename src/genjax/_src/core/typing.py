@@ -76,6 +76,10 @@ global_conf = BeartypeConf(
 )
 
 
+def typecheck_with_config(**kwargs):
+    return beartype(conf=BeartypeConf(**kwargs))
+
+
 typecheck = beartype(conf=global_conf)
 """
 Accepts a function, and returns a function which uses `beartype` to perform type checking.
@@ -84,9 +88,10 @@ Examples:
     The below examples are roughly what you should expect to see if you trip over `beartype` via `genjax.typing.typecheck`.
 
     ```python exec="yes" source="material-block" session="core"
-    from genjax.typing import typecheck, Int
+    from genjax.typing import Int
+    from genjax.typing import typecheck_with_config as typecheck
 
-    @typecheck(is_color=False)
+    @typecheck(is_color=False, violation_type=TypeError)
     def f(x: Int) -> Int:
         return x + 1.0
 
@@ -99,7 +104,7 @@ Examples:
     This also works for the return values:
 
     ```python exec="yes" source="material-block" session="core"
-    @typecheck(is_color=False)
+    @typecheck(is_color=False, violation_type=TypeError)
     def f(x: Int) -> Int:
         return x + 1.0
 
@@ -173,4 +178,5 @@ __all__ = [
     "static_check_shape_dtype_equivalence",
     "static_check_supports_grad",
     "typecheck",
+    "typecheck_with_config",
 ]

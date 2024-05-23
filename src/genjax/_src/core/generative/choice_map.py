@@ -100,6 +100,7 @@ class Selection(ProjectProblem):
         (**Making selections**) Selections can be constructed using the `SelectionBuilder` interface
         ```python exec="yes" source="material-block" session="core"
         from genjax import SelectionBuilder as S
+
         sel = S["x", "y"]
         print(sel.render_html())
         ```
@@ -470,6 +471,7 @@ class ChoiceMap(Sample, Constraint):
         (**Making choice maps**) Choice maps can be constructed using the `ChoiceMapBuilder` interface
         ```python exec="yes" source="material-block" session="core"
         from genjax import ChoiceMapBuilder as C
+
         chm = C["x"].set(3.0)
         print(chm.render_html())
         ```
@@ -477,6 +479,7 @@ class ChoiceMap(Sample, Constraint):
         (**Getting submaps**) Hierarchical choice maps support `__call__`, which allows for the retrieval of _submaps_ at addresses:
         ```python exec="yes" source="material-block" session="core"
         from genjax import ChoiceMapBuilder as C
+
         chm = C["x", "y"].set(3.0)
         submap = chm("x")
         print(submap.render_html())
@@ -485,6 +488,7 @@ class ChoiceMap(Sample, Constraint):
         (**Getting values**) Choice maps support `__getitem__`, which allows for the retrieval of _values_ at addresses:
         ```python exec="yes" source="material-block" session="core"
         from genjax import ChoiceMapBuilder as C
+
         chm = C["x", "y"].set(3.0)
         value = chm["x", "y"]
         print(value)
@@ -531,11 +535,13 @@ class ChoiceMap(Sample, Constraint):
             from genjax import bernoulli
             from genjax import SelectionBuilder as S
 
+
             @genjax.gen
             def model():
                 x = bernoulli(0.3) @ "x"
                 y = bernoulli(0.3) @ "y"
                 return x
+
 
             key = jax.random.PRNGKey(314159)
             tr = model.simulate(key, ())

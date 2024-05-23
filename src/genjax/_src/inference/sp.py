@@ -17,14 +17,10 @@ from abc import abstractmethod
 import jax
 
 from genjax._src.core.generative import (
-    Address,
     ChoiceMap,
-    ChoiceMapBuilder,
-    Constraint,
     GenerativeFunction,
     Sample,
     Selection,
-    SelectionBuilder,
     Weight,
 )
 from genjax._src.core.pytree import Pytree
@@ -52,16 +48,19 @@ class Target(Pytree):
     Targets are created by providing a generative function, arguments to the generative function, and a constraint.
 
     Examples:
+        Creating a target from a generative function, by providing arguments and a constraint:
         ```python exec="yes" html="true" source="material-block" session="core"
         import genjax
         from genjax import ChoiceMapBuilder as C
         from genjax.inference import Target
+
 
         @genjax.gen
         def model():
             x = genjax.normal(0.0, 1.0) @ "x"
             y = genjax.normal(x, 1.0) @ "y"
             return x
+
 
         target = Target(model, (), C["y"].set(3.0))
         print(target.render_html())
@@ -92,7 +91,7 @@ class Target(Pytree):
 @Pytree.dataclass
 class SampleDistribution(Distribution):
     """
-    The abstract class `SampleDistribution` represents the type of distributions whose return value type is a `Sample`. This is the abstract base class of `InferenceAlgorithm`, as well as `Marginal`.
+    The abstract class `SampleDistribution` represents the type of distributions whose return value type is a `Sample`. This is the abstract base class of `Algorithm`, as well as `Marginal`.
     """
 
     @abstractmethod
@@ -118,27 +117,29 @@ class SampleDistribution(Distribution):
 ########################
 
 
-class InferenceAlgorithm(SampleDistribution):
-    """The abstract class `InferenceAlgorithm` is the type of inference
-    algorithms: programs which provide interfaces for sampling from
-    posterior approximations, and estimating the density of these samplers.
+class Algorithm(SampleDistribution):
+    """`Algorithm` is the type of inference
+    algorithms: probabilistic programs which provide interfaces for sampling from
+    posterior approximations, and estimating densities.
 
-    Inference algorithms expose two key interfaces:
-    [`InferenceAlgorithm.random_weighted`](inference.md#genjax.inference.InferenceAlgorithm.random_weighted)
-    and [`InferenceAlgorithm.estimate_logpdf`](inference.md#genjax.inference.InferenceAlgorithm.estimate_logpdf).
+    **The stochastic probability interface for `Algorithm`**
 
-    `InferenceAlgorithm.random_weighted` exposes sampling from the approximation
+    Inference algorithms implement the stochastic probability interface:
+
+    * `Algorithm.random_weighted` exposes sampling from the approximation
     which the algorithm represents: it accepts a `Target` as input, representing the
-    unnormalized distribution $\\pi$, and samples from an approximation to
-    the normalized distribution $\\pi / Z$.
+    unnormalized distribution, and returns a sample from an approximation to
+    the normalized distribution, along with a density estimate of the normalized distribution.
 
-    `InferenceAlgorithm.estimate_logpdf` exposes density _estimation_ for the
-    approximation which `InferenceAlgorithm.random_weighted` samples from:
-    it accepts a value sampled from this approximation, and the `Target` which
+    * `Algorithm.estimate_logpdf` exposes density estimation for the
+    approximation which `Algorithm.random_weighted` samples from:
+    it accepts a value on the support of the approximation, and the `Target` which
     induced the approximation as input, and returns an estimate of the density of
     the approximation.
 
-    Subclasses of type `InferenceAlgorithm` can also implement two optional methods
+    **Optional methods for gradient estimators**
+
+    Subclasses of type `Algorithm` can also implement two optional methods
     designed to support effective gradient estimators for variational objectives
     (`estimate_normalizing_constant` and `estimate_reciprocal_normalizing_constant`).
     """
@@ -152,22 +153,19 @@ class InferenceAlgorithm(SampleDistribution):
         self,
         key: PRNGKey,
         target: Target,
-    ) -> Tuple[FloatArray, Sample]:
+    ) -> Tuple[Weight, Sample]:
         """
-        Given a `key: PRNGKey`, and a `target: Target`, returns a pair `(log(w), sample)`.
+        Given a [`Target`][genjax.inference.Target], return a [`Sample`][genjax.core.Sample] from an approximation to the normalized distribution of the target, and a random [`Weight`][genjax.core.Weight] estimate of the normalized density of the target at the sample.
 
-        The sample from the approximation `sample : Sample` is a sample on the support
-        of `target.gen_fn` which _are not in_ `target.constraints`.
-        The sample is produced by running the inference algorithm represented by `self`.
+        The `sample` is a sample on the support of `target.gen_fn` which _are not in_ `target.constraints`, produced by running the inference algorithm.
 
-        Let `T` denote the target and `S` denote the sample. The weight `log(w)`
-        is a random weight such that $w$ satisfies:
+        Let $T_P(a, c)$ denote the target, with $P$ the distribution on samples represented by `target.gen_fn`, and $S$ denote the sample. Let $w$ denote the weight `w`. The weight $w$ is a random weight such that $w$ satisfies:
 
         $$
-        \\mathbb{E}\\big[\\frac{1}{w} \\mid \\texttt{S}\\big] = \\frac{1}{P(\\texttt{S} \\mid \\texttt{T.constraints}; \\texttt{T.args})}
+        \\mathbb{E}\\big[\\frac{1}{w} \\mid S \\big] = \\frac{1}{P(S \\mid c; a)}
         $$
 
-        where `P` is the distribution on samples represented by `target.gen_fn`.
+        This interface corresponds to **(Defn 3.2) Unbiased Density Sampler** in [[Lew23](https://dl.acm.org/doi/pdf/10.1145/3591290)].
         """
         pass
 
@@ -177,18 +175,17 @@ class InferenceAlgorithm(SampleDistribution):
         key: PRNGKey,
         sample: Sample,
         target: Target,
-    ) -> FloatArray:
+    ) -> Weight:
         """
-        Given a `key: PRNGKey`, `sample: Sample` and a `target: Target`, returns a random value $\\log(w)$.
+        Given a [`Sample`][genjax.core.Sample] and a [`Target`][genjax.inference.Target], return a random [`Weight`][genjax.core.Weight] estimate of the normalized density of the target at the sample.
 
-        Let `T` denote the target and `S` denote the sample. The weight $\\log(w)$
-        is a random weight such that $w$ satisfies:
+        Let $T_P(a, c)$ denote the target, with $P$ the distribution on samples represented by `target.gen_fn`, and $S$ denote the sample. Let $w$ denote the weight `w`. The weight $w$ is a random weight such that $w$ satisfies:
 
         $$
-        \\mathbb{E}[w] = P(\\texttt{S} \\mid \\texttt{T.constraints})
+        \\mathbb{E}[w] = P(S \\mid c, a)
         $$
 
-        where $P$ is the distribution on samples provided by `T.gen_fn`.
+        This interface corresponds to **(Defn 3.1) Positive Unbiased Density Estimator** in [[Lew23](https://dl.acm.org/doi/pdf/10.1145/3591290)].
         """
         pass
 
@@ -229,7 +226,7 @@ class Marginal(SampleDistribution):
 
     gen_fn: GenerativeFunction
     selection: Selection = Pytree.field(default=Selection.all())
-    algorithm: Optional[InferenceAlgorithm] = Pytree.field(default=None)
+    algorithm: Optional[Algorithm] = Pytree.field(default=None)
 
     @typecheck
     def random_weighted(
@@ -259,7 +256,7 @@ class Marginal(SampleDistribution):
     def estimate_logpdf(
         self,
         key: PRNGKey,
-        constraint: Constraint,
+        constraint: ChoiceMap,
         *args,
     ) -> Weight:
         if self.algorithm is None:
@@ -269,47 +266,6 @@ class Marginal(SampleDistribution):
             target = Target(self.gen_fn, args, constraint)
             Z = self.algorithm.estimate_normalizing_constant(key, target)
             return Z
-
-
-@Pytree.dataclass
-@typecheck
-class ValueMarginal(Distribution):
-    """The `ValueMarginal` class represents the marginal distribution of a generative function over
-    a single address `addr: Any`. The return value type is the type of the value at that address.
-    """
-
-    p: GenerativeFunction
-    addr: Any
-    algorithm: Optional[InferenceAlgorithm] = Pytree.field(default=None)
-
-    @typecheck
-    def random_weighted(
-        self,
-        key: PRNGKey,
-        *args,
-    ) -> Tuple[Weight, Any]:
-        marginal = Marginal(
-            self.p,
-            SelectionBuilder[self.addr],
-            self.algorithm,
-        )
-        Z, choice = marginal.random_weighted(key, *args)
-        return Z, choice[self.addr]
-
-    @typecheck
-    def estimate_logpdf(
-        self,
-        key: PRNGKey,
-        v: Any,
-        *args,
-    ) -> Weight:
-        marginal = Marginal(
-            self.p,
-            SelectionBuilder[self.addr],
-            self.algorithm,
-        )
-        latent_choice: Sample = ChoiceMapBuilder.a(self.addr, v)
-        return marginal.estimate_logpdf(key, latent_choice, *args)
 
 
 ################################
@@ -322,35 +278,21 @@ def marginal(
     gen_fn: Optional[GenerativeFunction] = None,
     /,
     *,
-    select_or_addr: Optional[Selection | Address] = None,
-    algorithm: Optional[InferenceAlgorithm] = None,
+    selection: Optional[Selection] = None,
+    algorithm: Optional[Algorithm] = None,
 ) -> Callable | GenerativeFunction:
-    """If `select_or_addr` is a `Selection`, this constructs a `Marginal` distribution
-    which samples `Sample` objects with addresses given in the selection.
-    If `select_or_addr` is an address, this constructs a `ValueMarginal` distribution
-    which samples values of the type stored at the given address in `gen_fn`.
-    """
-
-    @Pytree.partial(select_or_addr)
+    @Pytree.partial(selection)
     def decorator(
-        select_or_addr: Optional[Selection | Address],
+        selection: Optional[Selection],
         gen_fn: GenerativeFunction,
-    ) -> Marginal | ValueMarginal:
-        if not select_or_addr:
-            select_or_addr = Selection.all()
-        if isinstance(select_or_addr, Selection):
-            marginal = Marginal(
-                gen_fn,
-                select_or_addr,
-                algorithm,
-            )
-        else:
-            marginal = ValueMarginal(
-                gen_fn,
-                select_or_addr,
-                algorithm,
-            )
-        return marginal
+    ) -> Marginal:
+        if not selection:
+            selection = Selection.all()
+        return Marginal(
+            gen_fn,
+            selection,
+            algorithm,
+        )
 
     if gen_fn is not None:
         return decorator(gen_fn)

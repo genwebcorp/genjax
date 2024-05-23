@@ -82,8 +82,9 @@ class VmapTrace(Trace):
 
 @Pytree.dataclass
 class VmapCombinator(GenerativeFunction):
-    """> `VmapCombinator` accepts a generative function as input and provides
-    `vmap`-based implementations of the generative function interface methods.
+    """`VmapCombinator` is a generative function which lifts another generative function to support `vmap`-based patterns of parallel (and generative) computation.
+
+    In contrast to the full set of options which [`jax.vmap`](https://jax.readthedocs.io/en/latest/_autosummary/jax.vmap.html), this combinator expects an `in_axes: Tuple` configuration argument, which indicates how the underlying `vmap` patterns should be broadcast across the input arguments to the generative function.
 
     Examples:
         ```python exec="yes" html="true" source="material-block" session="gen-fn"
@@ -95,6 +96,7 @@ class VmapCombinator(GenerativeFunction):
         # One way to create a `VmapCombinator`: using the decorator. #
         ##############################################################
 
+
         @genjax.vmap_combinator(in_axes=(0,))
         @genjax.gen
         def mapped(x):
@@ -102,15 +104,18 @@ class VmapCombinator(GenerativeFunction):
             noise2 = genjax.normal(0.0, 1.0) @ "noise2"
             return x + noise1 + noise2
 
+
         #################################################
         # The other way: use `vmap_combinator` directly #
         #################################################
+
 
         @genjax.gen
         def add_normal_noise(x):
             noise1 = genjax.normal(0.0, 1.0) @ "noise1"
             noise2 = genjax.normal(0.0, 1.0) @ "noise2"
             return x + noise1 + noise2
+
 
         mapped = genjax.vmap_combinator(in_axes=(0,))(add_normal_noise)
 
@@ -123,7 +128,14 @@ class VmapCombinator(GenerativeFunction):
     """
 
     gen_fn: GenerativeFunction
+    """
+    The source generative function.
+    """
+
     in_axes: Tuple = Pytree.static()
+    """
+    The axes specified, it should be a tuple which matches (or prefixes) the `Pytree` type of the argument tuple for the underlying `gen_fn`.
+    """
 
     def __abstract_call__(self, *args) -> Any:
         def inner(*args):
