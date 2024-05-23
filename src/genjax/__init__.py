@@ -26,7 +26,6 @@ from .experimental import *
 from .generative_functions import *
 from .incremental import *
 from .inference import *
-from .information import *
 from .pretty import *
 
 __version__ = metadata.version("genjax")
