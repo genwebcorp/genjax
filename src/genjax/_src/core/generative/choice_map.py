@@ -92,7 +92,6 @@ class _SelectionBuilder(Pytree):
 SelectionBuilder = _SelectionBuilder()
 
 
-@Pytree.dataclass
 class Selection(ProjectProblem):
     """
     The type `Selection` provides a lens-like interface for filtering the random choices in a `ChoiceMap`.
@@ -136,8 +135,6 @@ class Selection(ProjectProblem):
         ```
     """
 
-    selection_function: "SelectionFunction"
-
     def __or__(self, other: "Selection") -> "Selection":
         return select_or(self, other)
 
@@ -155,7 +152,7 @@ class Selection(ProjectProblem):
         addr = addr if isinstance(addr, tuple) else (addr,)
         subselection = self
         for comp in addr:
-            subselection = subselection.selection_function.get_subselection(comp)
+            subselection = subselection.get_subselection(comp)
         return subselection
 
     @typecheck
@@ -164,7 +161,7 @@ class Selection(ProjectProblem):
         addr: ExtendedAddressComponent | ExtendedAddress,
     ) -> Bool | BoolArray:
         subselection = self(addr)
-        return subselection.selection_function.check()
+        return subselection.check()
 
     @typecheck
     def __contains__(
@@ -173,8 +170,13 @@ class Selection(ProjectProblem):
     ) -> Bool | BoolArray:
         return self[addr]
 
+    @abstractmethod
     def check(self) -> Bool | BoolArray:
-        return self.selection_function.check()
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_subselection(self, addr: ExtendedAddressComponent) -> "Selection":
+        raise NotImplementedError
 
     #################################################
     # Convenient syntax for constructing selections #
@@ -206,40 +208,21 @@ class Selection(ProjectProblem):
 #######################
 
 
-class SelectionFunction(Pytree):
-    """
-    The signature here is inspired by monadic parser combinators.
-    For instance: https://www.cmi.ac.in/~spsuresh/teaching/prgh15/papers/monadic-parsing.pdf
-    SelectionFunction = Callable[
-        [AddressComponent],
-        Tuple[BoolArray, Selection],
-    ]
-    """
-
-    @abstractmethod
-    def check(self) -> Bool | BoolArray:
-        pass
-
-    @abstractmethod
-    def get_subselection(self, addr: ExtendedAddressComponent) -> Selection:
-        pass
-
-
 @Pytree.dataclass
-class AllSelFn(SelectionFunction):
+class AllSel(Selection):
     def check(self) -> Bool | BoolArray:
         return True
 
     def get_subselection(self, addr: ExtendedAddressComponent) -> Selection:
-        return Selection(AllSelFn())
+        return AllSel()
 
 
 def select_all():
-    return Selection(AllSelFn())
+    return AllSel()
 
 
 @Pytree.dataclass
-class DeferSelFn(SelectionFunction):
+class DeferSel(Selection):
     flag: Union[Bool, BoolArray]
     s: Selection
 
@@ -257,11 +240,11 @@ def select_defer(
     flag: Union[Bool, BoolArray],
     s: Selection,
 ) -> Selection:
-    return Selection(DeferSelFn(flag, s))
+    return DeferSel(flag, s)
 
 
 @Pytree.dataclass
-class CompSelFn(SelectionFunction):
+class CompSel(Selection):
     s: Selection
 
     def check(self) -> Bool | BoolArray:
@@ -277,7 +260,7 @@ class CompSelFn(SelectionFunction):
 def select_complement(
     s: Selection,
 ) -> Selection:
-    return Selection(CompSelFn(s))
+    return CompSel(s)
 
 
 def select_none():
@@ -285,7 +268,7 @@ def select_none():
 
 
 @Pytree.dataclass
-class StaticSelFn(SelectionFunction):
+class StaticSel(Selection):
     addr: StaticAddressComponent = Pytree.static()
     s: Selection = Pytree.field()
 
@@ -302,12 +285,12 @@ def select_static(
     addr: EllipsisType | StaticAddressComponent,
     s: Selection,
 ) -> Selection:
-    return Selection(StaticSelFn(addr, s))
+    return StaticSel(addr, s)
 
 
 @Pytree.dataclass
-class IdxSelFn(SelectionFunction):
-    idx: DynamicAddressComponent
+class IdxSel(Selection):
+    idxs: DynamicAddressComponent
     s: Selection
 
     def check(self) -> Bool | BoolArray:
@@ -325,7 +308,7 @@ class IdxSelFn(SelectionFunction):
             def check_fn(v):
                 return staged_and(
                     v,
-                    jnp.any(v == self.idx),
+                    jnp.any(v == self.idxs),
                 )
 
             check = (
@@ -341,11 +324,11 @@ def select_idx(
     sidx: DynamicAddressComponent,
     s: Selection,
 ) -> Selection:
-    return Selection(IdxSelFn(sidx, s))
+    return IdxSel(sidx, s)
 
 
 @Pytree.dataclass
-class AndSelFn(SelectionFunction):
+class AndSel(Selection):
     s1: Selection
     s2: Selection
 
@@ -365,11 +348,11 @@ def select_and(
     s1: Selection,
     s2: Selection,
 ) -> Selection:
-    return Selection(AndSelFn(s1, s2))
+    return AndSel(s1, s2)
 
 
 @Pytree.dataclass
-class OrSelFn(SelectionFunction):
+class OrSel(Selection):
     s1: Selection
     s2: Selection
 
@@ -389,11 +372,11 @@ def select_or(
     s1: Selection,
     s2: Selection,
 ) -> Selection:
-    return Selection(OrSelFn(s1, s2))
+    return OrSel(s1, s2)
 
 
 @Pytree.dataclass
-class ChmSelFn(SelectionFunction):
+class ChmSel(Selection):
     c: "ChoiceMap"
 
     def check(self) -> Bool | BoolArray:
@@ -408,7 +391,7 @@ class ChmSelFn(SelectionFunction):
 def select_choice_map(
     c: "ChoiceMap",
 ) -> Selection:
-    return Selection(ChmSelFn(c))
+    return ChmSel(c)
 
 
 ###############
@@ -478,7 +461,6 @@ def check_none(v):
         return True
 
 
-@Pytree.dataclass
 class ChoiceMap(Sample, Constraint):
     """
     The type `ChoiceMap` denotes a map-like value which can be sampled from generative functions.
@@ -523,25 +505,24 @@ class ChoiceMap(Sample, Constraint):
         ```
     """
 
-    choice_map_fn: "ChoiceMapFunction"
-
     #######################
     # Map-like interfaces #
     #######################
 
+    @abstractmethod
     def get_value(self) -> Any:
-        return self.choice_map_fn.get_value()
+        raise NotImplementedError
 
-    @typecheck
-    def has_value(self) -> Bool | BoolArray:
-        return check_none(self.choice_map_fn.get_value())
-
-    @typecheck
+    @abstractmethod
     def get_submap(
         self,
         addr: ExtendedAddressComponent,
     ) -> "ChoiceMap":
-        return self.choice_map_fn.get_submap(addr)
+        raise NotImplementedError
+
+    @typecheck
+    def has_value(self) -> Bool | BoolArray:
+        return check_none(self.get_value())
 
     @typecheck
     def filter(self, selection: Selection) -> "ChoiceMap":
@@ -581,7 +562,7 @@ class ChoiceMap(Sample, Constraint):
 
     @typecheck
     def static_is_empty(self) -> Bool:
-        return self.choice_map_fn.static_is_empty()
+        return False
 
     ###########
     # Dunders #
@@ -601,7 +582,7 @@ class ChoiceMap(Sample, Constraint):
         addr = addr if isinstance(addr, tuple) else (addr,)
         submap = self
         for comp in addr:
-            submap = submap.choice_map_fn.get_submap(comp)
+            submap = submap.get_submap(comp)
         return submap
 
     @typecheck
@@ -722,51 +703,23 @@ class ChoiceMap(Sample, Constraint):
         return ChoiceMap.AddressIndex(self, [])
 
 
-class ChoiceMapFunction(Pytree):
-    """
-    ChoiceMapFunction = Callable[
-        [AddressComponent],
-        Tuple[Optional[Any], ChoiceMap],
-        # The elements of this type are, given an address component:
-        # 1. Value at this node, if there is one
-        # 2. The sub choice map at this node.
-    ]
-    """
-
-    @abstractmethod
-    def get_value(self) -> Optional[Any]:
-        pass
-
-    @abstractmethod
-    def get_submap(self, addr: AddressComponent) -> ChoiceMap:
-        pass
-
-    def static_is_empty(self) -> Bool:
-        return False
-
-    def __call__(self, addr: AddressComponent):
-        value = self.get_value()
-        submap = self.get_submap(addr)
-        return value, submap
-
-
 @Pytree.dataclass
-class EmptyChmFn(ChoiceMapFunction):
+class EmptyChm(ChoiceMap):
     def get_value(self) -> Any:
         return None
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
-        return ChoiceMap(EmptyChmFn())
+        return EmptyChm()
 
     def static_is_empty(self) -> Bool:
         return True
 
 
-choice_map_empty = ChoiceMap(EmptyChmFn())
+choice_map_empty = EmptyChm()
 
 
 @Pytree.dataclass
-class ValueChmFn(ChoiceMapFunction):
+class ValueChm(ChoiceMap):
     v: Any
 
     def get_value(self) -> Optional[Any]:
@@ -780,11 +733,11 @@ class ValueChmFn(ChoiceMapFunction):
 def choice_map_value(
     v: Any,
 ) -> ChoiceMap:
-    return ChoiceMap(ValueChmFn(v))
+    return ValueChm(v)
 
 
 @Pytree.dataclass
-class IdxChmFn(ChoiceMapFunction):
+class IdxChm(ChoiceMap):
     addr: DynamicAddressComponent
     c: ChoiceMap
 
@@ -821,11 +774,11 @@ def choice_map_idx(
     addr: DynamicAddressComponent,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return choice_map_empty if c.static_is_empty() else ChoiceMap(IdxChmFn(addr, c))
+    return choice_map_empty if c.static_is_empty() else IdxChm(addr, c)
 
 
 @Pytree.dataclass
-class StaticChmFn(ChoiceMapFunction):
+class StaticChm(ChoiceMap):
     addr: AddressComponent = Pytree.static()
     c: ChoiceMap = Pytree.field()
 
@@ -842,11 +795,11 @@ def choice_map_static(
     addr: AddressComponent,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return choice_map_empty if c.static_is_empty() else ChoiceMap(StaticChmFn(addr, c))
+    return choice_map_empty if c.static_is_empty() else StaticChm(addr, c)
 
 
 @Pytree.dataclass
-class XorChmFn(ChoiceMapFunction):
+class XorChm(ChoiceMap):
     c1: ChoiceMap
     c2: ChoiceMap
 
@@ -886,11 +839,11 @@ def choice_map_xor(
         case True, _:
             return c2
         case _:
-            return ChoiceMap(XorChmFn(c1, c2))
+            return XorChm(c1, c2)
 
 
 @Pytree.dataclass
-class OrChmFn(ChoiceMapFunction):
+class OrChm(ChoiceMap):
     c1: ChoiceMap
     c2: ChoiceMap
 
@@ -927,11 +880,11 @@ def choice_map_or(
         case True, _:
             return c2
         case _:
-            return ChoiceMap(OrChmFn(c1, c2))
+            return OrChm(c1, c2)
 
 
 @Pytree.dataclass
-class MaskChmFn(ChoiceMapFunction):
+class MaskChm(ChoiceMap):
     flag: Bool | BoolArray
     c: ChoiceMap
 
@@ -956,12 +909,12 @@ def choice_map_masked(
         if static_check_bool(flag) and flag
         else choice_map_empty
         if static_check_bool(flag) and not flag
-        else ChoiceMap(MaskChmFn(flag, c))
+        else MaskChm(flag, c)
     )
 
 
 @Pytree.dataclass
-class FilteredChmFn(ChoiceMapFunction):
+class FilteredChm(ChoiceMap):
     selection: Selection
     c: ChoiceMap
 
@@ -981,15 +934,11 @@ def choice_map_filtered(
     selection: Selection,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return (
-        choice_map_empty
-        if c.static_is_empty()
-        else ChoiceMap(FilteredChmFn(selection, c))
-    )
+    return choice_map_empty if c.static_is_empty() else FilteredChm(selection, c)
 
 
 @Pytree.dataclass
-class AddrFnChmFn(ChoiceMapFunction):
+class AddrFnChm(ChoiceMap):
     c: ChoiceMap
     addr_fn: dict = Pytree.static()
 
@@ -1017,6 +966,4 @@ def choice_map_address_function(
     addr_fn: dict,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return (
-        choice_map_empty if c.static_is_empty() else ChoiceMap(AddrFnChmFn(c, addr_fn))
-    )
+    return choice_map_empty if c.static_is_empty() else AddrFnChm(c, addr_fn)
