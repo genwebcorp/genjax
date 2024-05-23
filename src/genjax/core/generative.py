@@ -14,6 +14,7 @@
 
 from genjax._src.core.generative import (
     Argdiffs,
+    Arguments,
     ChoiceMap,
     ChoiceMapBuilder,
     Constraint,
@@ -39,6 +40,7 @@ from genjax._src.core.generative import (
 
 __all__ = [
     "Argdiffs",
+    "Arguments",
     "ChoiceMap",
     "ChoiceMapBuilder",
     "Constraint",

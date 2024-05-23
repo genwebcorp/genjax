@@ -38,7 +38,6 @@ from genjax._src.core.typing import (
     Optional,
     PRNGKey,
     Tuple,
-    TypeVar,
     static_check_is_concrete,
     typecheck,
 )
@@ -68,6 +67,11 @@ A _score_ is a specific density ratio, described fully in [`simulate`][genjax.co
 The type `Score` does not enforce any meaningful mathematical invariants, but is used to denote the type of scores in the GenJAX system, to improve readability and parsing of interface specifications.
 
 Under type checking, the type `Score` enforces that the value must be a scalar floating point number.
+"""
+
+Arguments = Tuple
+"""
+`Arguments` is the type of argument values to generative functions. It is a type alias for `Tuple`, and is used to improve readability and parsing of interface specifications.
 """
 
 Retval = Any
@@ -274,8 +278,6 @@ class MaskedSample(Sample):
 # Trace #
 #########
 
-T = TypeVar("T", bound=Sample)
-
 
 class Trace(Pytree):
     """
@@ -289,16 +291,16 @@ class Trace(Pytree):
     """
 
     @abstractmethod
-    def get_args(self) -> Tuple:
-        """Returns the arguments for the generative function invocation which created the `Trace`."""
+    def get_args(self) -> Arguments:
+        """Returns the [`Arguments`][genjax.core.Arguments] for the [`GenerativeFunction`][genjax.core.GenerativeFunction] invocation which created the [`Trace`][genjax.core.Trace]."""
 
     @abstractmethod
     def get_retval(self) -> Retval:
-        """Returns the return value from the generative function invocation which created the `Trace`."""
+        """Returns the [`Retval`][genjax.core.Retval] from the [`GenerativeFunction`][genjax.core.GenerativeFunction] invocation which created the [`Trace`][genjax.core.Trace]."""
 
     @abstractmethod
     def get_score(self) -> Score:
-        """Return the score of the `Trace`.
+        """Return the [`Score`][genjax.core.Score] of the `Trace`.
 
         The score must satisfy a particular mathematical specification: it's either an exact density evaluation of $P$ (the distribution over samples) for the sample returned by `Trace.get_sample`, or _a sample from an estimator_ (a density estimate) if the generative function contains _untraced randomness_.
 
@@ -344,8 +346,8 @@ class Trace(Pytree):
         """
 
     @abstractmethod
-    def get_sample(self) -> T:
-        """Return a `Sample`, a representation of the sample from the distribution over samples which the generative function sampled to create the `Trace`."""
+    def get_sample(self) -> Sample:
+        """Return the [`Sample`][genjax.core.Sample] sampled from the distribution over samples by the generative function during the invocation which created the [`Trace`][genjax.core.Trace]."""
 
     # TODO: deprecated.
     def get_choices(self) -> Sample:
@@ -353,17 +355,17 @@ class Trace(Pytree):
 
     @abstractmethod
     def get_gen_fn(self) -> "GenerativeFunction":
-        """Returns the generative function whose invocation created the `Trace`."""
+        """Returns the [`GenerativeFunction`][genjax.core.GenerativeFunction] whose invocation created the [`Trace`][genjax.core.Trace]."""
         raise NotImplementedError
 
     def update(
         self,
         key: PRNGKey,
         problem: UpdateProblem,
-        argdiffs: Optional[Tuple | Argdiffs] = None,
+        argdiffs: Optional[Argdiffs] = None,
     ) -> Tuple["Trace", Weight, Retdiff, UpdateProblem]:
         """
-        This method calls out to the underlying `GenerativeFunction.update` method - see [`UpdateProblem`][genjax.core.UpdateProblem] and [`update`][genjax.core.GenerativeFunction.update] for more information.
+        This method calls out to the underlying [`GenerativeFunction.update`][genjax.core.GenerativeFunction.update] method - see [`UpdateProblem`][genjax.core.UpdateProblem] and [`update`][genjax.core.GenerativeFunction.update] for more information.
         """
         gen_fn = self.get_gen_fn()
         if argdiffs:
@@ -442,9 +444,9 @@ class GenerativeFunction(Pytree):
 
     Generative functions are a type of probabilistic program. In terms of their specification, they come equipped with a few mathematical ingredients:
 
-    * (**Distribution over samples**) $P(\\cdot_s, \\cdot_r; a)$ - a probability distribution over samples ($s$) and untraced randomness ($r$), indexed by arguments $a$. This ingredient supports the [`simulate`][genjax.core.GenerativeFunction.simulate] and [`assess`][genjax.core.GenerativeFunction.assess] interfaces, and specifies the distribution over samples which the generative function represents.
-    * (**Family of K/L proposals**) $(K(\\cdot_s, \\cdot_{K_r}; u, s), L(\\cdot_s, \\cdot_{L_r}; u, s)) = \\mathcal{F}(u, s)$ - a family of pairs of probabilistic programs (referred to as K and L), indexed by [`UpdateProblem`][genjax.core.UpdateProblem] $u$ and an existing sample $s$. This ingredient supports the [`update`][genjax.core.GenerativeFunction.update] and [`importance`][genjax.core.GenerativeFunction.importance] interface, and is used to specify an SMCP3 move which the generative function must provide in response to an update request. K and L must satisfy additional properties, described further in [`update`][genjax.core.GenerativeFunction.update].
-    * (**Return value function**) $f(s, r, a)$ - a deterministic return value function, which maps samples and untraced randomness to return values.
+    * (**Distribution over samples**) $P(\\cdot_t, \\cdot_r; a)$ - a probability distribution over samples $t$ and untraced randomness $r$, indexed by arguments $a$. This ingredient supports the [`simulate`][genjax.core.GenerativeFunction.simulate] and [`assess`][genjax.core.GenerativeFunction.assess] interfaces, and specifies the distribution over samples which the generative function represents.
+    * (**Family of K/L proposals**) $(K(\\cdot_t, \\cdot_{K_r}; u, t), L(\\cdot_t, \\cdot_{L_r}; u, t)) = \\mathcal{F}(u, t)$ - a family of pairs of probabilistic programs (referred to as K and L), indexed by [`UpdateProblem`][genjax.core.UpdateProblem] $u$ and an existing sample $t$. This ingredient supports the [`update`][genjax.core.GenerativeFunction.update] and [`importance`][genjax.core.GenerativeFunction.importance] interface, and is used to specify an SMCP3 move which the generative function must provide in response to an update request. K and L must satisfy additional properties, described further in [`update`][genjax.core.GenerativeFunction.update].
+    * (**Return value function**) $f(t, r, a)$ - a deterministic return value function, which maps samples and untraced randomness to return values.
 
     Generative functions also support a family of [`Target`][genjax.inference.Target] distributions - a [`Target`][genjax.inference.Target] distribution is a (possibly unnormalized) distribution, typically induced by inference problems.
 
@@ -520,7 +522,7 @@ class GenerativeFunction(Pytree):
     def simulate(
         self,
         key: PRNGKey,
-        args: Tuple,
+        args: Arguments,
     ) -> Trace:
         """
         Execute the generative function, sampling from its distribution over samples, and return a [`Trace`](core.md#genjax.core.Trace).
@@ -619,7 +621,7 @@ class GenerativeFunction(Pytree):
     def assess(
         self,
         sample: Sample,
-        args: Tuple,
+        args: Arguments,
     ) -> Tuple[Score, Retval]:
         """
         Return [the score][genjax.core.Trace.get_score] and [the return value][genjax.core.Trace.get_retval] when the generative function is invoked with the provided arguments, and constrained to take the provided sample as the sampled value.
@@ -635,7 +637,7 @@ class GenerativeFunction(Pytree):
         self,
         key: PRNGKey,
         constraint: Constraint,
-        args: Tuple,
+        args: Arguments,
     ) -> Tuple[Trace, Weight]:
         """
         Returns a properly weighted pair, a [`Trace`][genjax.core.Trace] and a [`Weight`][genjax.core.Weight], properly weighted for the target induced by the generative function for the provided constraint and arguments.
@@ -652,10 +654,10 @@ class GenerativeFunction(Pytree):
     def propose(
         self,
         key: PRNGKey,
-        args: Tuple,
+        args: Arguments,
     ) -> Tuple[Sample, Score, Retval]:
         """
-        Generates a sample from the generative function's distribution over samples, returns the score of that sample under the distribution, and returns the return value of the generative function for that sample.
+        Samples a [`Sample`][genjax.core.Sample] and any untraced randomness $r$ from the generative function's distribution over samples ($P$), and returns the [`Score`][genjax.core.Score] of that sample under the distribution, and the [`Retval`][genjax.core.Retval] of the generative function's return value function $f(r, t, a)$ for the sample and untraced randomness.
         """
         tr = self.simulate(key, args)
         sample = tr.get_sample()
@@ -858,20 +860,24 @@ class IgnoreKwargs(GenerativeFunction):
     def handle_kwargs(self) -> "GenerativeFunction":
         raise NotImplementedError
 
+    @GenerativeFunction.gfi_boundary
+    @typecheck
     def simulate(
         self,
         key: PRNGKey,
-        args: Tuple,
-    ):
+        args: Arguments,
+    ) -> Trace:
         (args, _kwargs) = args
         return self.wrapped.simulate(key, args)
 
+    @GenerativeFunction.gfi_boundary
+    @typecheck
     def update(
         self,
         key: PRNGKey,
         trace: Trace,
-        update_problem: Constraint,
-        argdiffs: Tuple,
+        update_problem: UpdateProblem,
+        argdiffs: Argdiffs,
     ):
         (argdiffs, _kwargdiffs) = argdiffs
         return self.wrapped.update(key, trace, update_problem, argdiffs)
