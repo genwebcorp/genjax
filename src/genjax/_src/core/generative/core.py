@@ -300,18 +300,18 @@ class Trace(Pytree):
     def get_score(self) -> Score:
         """Return the score of the `Trace`.
 
-        The score must satisfy a particular mathematical specification: it's either an exact density evaluation at the sample returned by `Trace.get_sample` for the distribution over samples which the generative function represents, or _a sample from an estimator_ if the generative function contains _untraced randomness_.
+        The score must satisfy a particular mathematical specification: it's either an exact density evaluation of $P$ (the distribution over samples) for the sample returned by `Trace.get_sample`, or _a sample from an estimator_ (a density estimate) if the generative function contains _untraced randomness_.
 
-        Denote the sample by $t$ and the arguments by $a$: when the generative function contains no _untraced randomness_, the score (in logspace) is given by:
+        Let $s$ be the score, $t$ the sample, and $a$ the arguments: when the generative function contains no _untraced randomness_, the score (in logspace) is given by:
 
         $$
-        s := \\log p(t; a)
+        \\log s := \\log P(t; a)
         $$
 
         (**With untraced randomness**) Gen allows for the possibility of sources of randomness _which are not traced_. When these sources are included in generative computations, the score is defined so that the following property holds:
 
         $$
-        \\mathbb{E}_{r\\sim~P(r | t; a)}\\big[\\frac{1}{s}\\big] = \\frac{1}{p(t; a)}
+        \\mathbb{E}_{r\\sim~P(r | t; a)}\\big[\\frac{1}{s}\\big] = \\frac{1}{P(t; a)}
         $$
 
         This property is the one you'd want to be true if you were using a generative function with untraced randomness _as a proposal_ in a routine which uses importance sampling, for instance.
@@ -326,11 +326,21 @@ class Trace(Pytree):
             y = genjax.normal(v, 1.0) @ "y"
         ```
 
-        In this case, the score is given by:
+        In this case, the score (in logspace) is given by:
 
         $$
-        s := \\log p(r, t; a) - \\log q(r; a)
+        \\log s := \\log P(r, t; a) - \\log Q(r; a)
         $$
+
+        which satisfies the requirement by virtue of the fact:
+
+        $$
+        \\begin{aligned}
+        \\mathbb{E}_{r\\sim~P(r | t; a)}\\big[\\frac{1}{s}\\big] &= \\mathbb{E}_{r\\sim P(r | t; a)}\\big[\\frac{Q(r; a)}{P(r, t; a)} \\big] \\\\ &= \\frac{1}{P(t; a)} \\mathbb{E}_{r\\sim P(r | t; a)}\\big[\\frac{Q(r; a)}{P(r | t; a)}\\big] \\\\
+        &= \\frac{1}{P(t; a)}
+        \\end{aligned}
+        $$
+
         """
 
     @abstractmethod
@@ -432,14 +442,14 @@ class GenerativeFunction(Pytree):
 
     Generative functions are a type of probabilistic program. In terms of their specification, they come equipped with a few mathematical ingredients:
 
-    * $P(\\cdot_s, \\cdot_r; a)$ - a probability distribution over samples ($s$) and untraced randomness ($r$), indexed by arguments $a$.
-    * $K(...), L(...) = \\mathcal{F}(u)$ - a family of pairs of SMC kernels (referred to as K and L), indexed by [`UpdateProblem`][genjax.core.UpdateProblem] $u$:
-    * $f(s, r, a)$ - a deterministic return value function, which maps samples and untraced randomness to return values.
+    * (**Distribution over samples**) $P(\\cdot_s, \\cdot_r; a)$ - a probability distribution over samples ($s$) and untraced randomness ($r$), indexed by arguments $a$. This ingredient supports the [`simulate`][genjax.core.GenerativeFunction.simulate] and [`assess`][genjax.core.GenerativeFunction.assess] interfaces, and specifies the distribution over samples which the generative function represents.
+    * (**Family of K/L proposals**) $(K(\\cdot_s, \\cdot_{K_r}; u, s), L(\\cdot_s, \\cdot_{L_r}; u, s)) = \\mathcal{F}(u, s)$ - a family of pairs of probabilistic programs (referred to as K and L), indexed by [`UpdateProblem`][genjax.core.UpdateProblem] $u$ and an existing sample $s$. This ingredient supports the [`update`][genjax.core.GenerativeFunction.update] interface, and is used to specify an SMCP3 move which the generative function must provide in response to an update request.
+    * (**Return value function**) $f(s, r, a)$ - a deterministic return value function, which maps samples and untraced randomness to return values.
 
     Generative functions also support a family of [`Target`][genjax.inference.Target] distributions - a [`Target`][genjax.inference.Target] distribution is a (possibly unnormalized) distribution typically induced by inference problems.
 
     * $\\delta_\\emptyset$ - the empty target, whose only possible value is the empty sample, with density 1.
-    * $T_P(a, c)$ - a family of targets indexed by arguments $a$ and [`Constraint`][genjax.core.Constraint] $c$, created by pairing the distribution over samples $P$ with arguments and constraint.
+    * (**Family of targets induced by $P$**) $T_P(a, c)$ - a family of targets indexed by arguments $a$ and [`Constraint`][genjax.core.Constraint] $c$, created by pairing the distribution over samples $P$ with arguments and constraint.
 
     Generative functions expose computations using these ingredients through the _generative function interface_ (the methods which are documented below).
 
