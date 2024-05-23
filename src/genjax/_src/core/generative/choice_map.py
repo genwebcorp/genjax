@@ -651,8 +651,8 @@ class ChoiceMap(Sample, Constraint):
 
     # NOTE: this only allows dictionaries with static keys
     # a.k.a. strings -- not jax.arrays -- for now.
-    def addr_fn(self, addr_fn: dict):
-        return choice_map_address_function(addr_fn, self)
+    def with_addr_map(self, addr_map: dict):
+        return choice_map_address_function(addr_map, self)
 
     ##########################
     # AddressIndex interface #
@@ -938,12 +938,12 @@ def choice_map_filtered(
 
 
 @Pytree.dataclass
-class AddrFnChm(ChoiceMap):
-    c: ChoiceMap
-    addr_fn: dict = Pytree.static()
+class AddrMapChm(ChoiceMap):
+    addr_map: dict = Pytree.static()
+    c: ChoiceMap = Pytree.field()
 
     def get_value(self) -> Bool | BoolArray:
-        mapped = self.addr_fn.get((), ())
+        mapped = self.addr_map.get((), ())
         if mapped:
             submap = self.c.get_submap(mapped)
             return submap.get_value()
@@ -951,11 +951,11 @@ class AddrFnChm(ChoiceMap):
             return self.c.get_value()
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
-        if ... in self.addr_fn:
-            mapped = self.addr_fn[...]
+        if ... in self.addr_map:
+            mapped = self.addr_map[...]
             return self.c.get_submap(mapped).get_submap(addr)
         else:
-            mapped = self.addr_fn.get(addr, addr)
+            mapped = self.addr_map.get(addr, addr)
             if mapped is ...:
                 return self.c
             return self.c.get_submap(mapped)
@@ -963,7 +963,7 @@ class AddrFnChm(ChoiceMap):
 
 @typecheck
 def choice_map_address_function(
-    addr_fn: dict,
+    addr_map: dict,
     c: ChoiceMap,
 ) -> ChoiceMap:
-    return choice_map_empty if c.static_is_empty() else AddrFnChm(c, addr_fn)
+    return choice_map_empty if c.static_is_empty() else AddrMapChm(addr_map, c)
