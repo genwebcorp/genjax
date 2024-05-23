@@ -593,7 +593,10 @@ class GenerativeFunction(Pytree):
         """
         importance_problem = ImportanceProblem(constraint)
         tr, w, _, _ = self.update(
-            key, EmptyTrace(self), importance_problem, Diff.unknown_change(args)
+            key,
+            EmptyTrace(self),
+            importance_problem,
+            Diff.unknown_change(args),
         )
         return tr, w
 
