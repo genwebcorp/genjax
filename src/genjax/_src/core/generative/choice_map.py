@@ -872,15 +872,15 @@ def choice_map_xor(
     c1: ChoiceMap,
     c2: ChoiceMap,
 ) -> ChoiceMap:
-    return (
-        choice_map_empty
-        if c2.static_is_empty() and c1.static_is_empty()
-        else c1
-        if c2.static_is_empty()
-        else c2
-        if c1.static_is_empty()
-        else ChoiceMap(XorChmFn(c1, c2))
-    )
+    match (c1.static_is_empty(), c2.static_is_empty()):
+        case True, True:
+            return choice_map_empty
+        case _, True:
+            return c1
+        case True, _:
+            return c2
+        case _:
+            return ChoiceMap(XorChmFn(c1, c2))
 
 
 @Pytree.dataclass
@@ -913,15 +913,15 @@ def choice_map_or(
     c1: ChoiceMap,
     c2: ChoiceMap,
 ) -> ChoiceMap:
-    return (
-        choice_map_empty
-        if c2.static_is_empty() and c1.static_is_empty()
-        else c1
-        if c2.static_is_empty()
-        else c2
-        if c1.static_is_empty()
-        else ChoiceMap(OrChmFn(c1, c2))
-    )
+    match (c1.static_is_empty(), c2.static_is_empty()):
+        case True, True:
+            return choice_map_empty
+        case _, True:
+            return c1
+        case True, _:
+            return c2
+        case _:
+            return ChoiceMap(OrChmFn(c1, c2))
 
 
 @Pytree.dataclass
