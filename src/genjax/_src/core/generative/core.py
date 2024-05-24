@@ -525,7 +525,13 @@ class GenerativeFunction(Pytree):
         args: Arguments,
     ) -> Trace:
         """
-        Execute the generative function, sampling from its distribution over samples, and return a [`Trace`](core.md#genjax.core.Trace).
+        Execute the generative function, sampling from its distribution over samples, and return a [`Trace`][genjax.core.Trace].
+
+        ## More on traces
+
+        The [`Trace`][genjax.core.Trace] returned by `simulate` implements its own interface.
+
+        It is responsible for storing the arguments of the invocation ([`Trace.get_args`](core.md#genjax.core.Trace.get_args)), the return value of the generative function ([`Trace.get_retval`](core.md#genjax.core.Trace.get_retval)), the identity of the generative function which produced the trace ([`Trace.get_gen_fn`](core.md#genjax.core.Trace.get_gen_fn)), the sample of traced random choices produced during the invocation ([`Trace.get_sample`](core.md#genjax.core.Trace.get_sample)) and _the score_ of the sample ([`Trace.get_score`](core.md#genjax.core.Trace.get_score)).
 
         Examples:
             ```python exec="yes" html="true" source="material-block" session="core"
@@ -567,10 +573,6 @@ class GenerativeFunction(Pytree):
             tr = jit(vmap(sim, in_axes=(0, None)))(sub_keys, ())
             print(tr.render_html())
             ```
-
-
-        The trace returned by `simulate` has the arguments of the invocation ([`Trace.get_args`](core.md#genjax.core.Trace.get_args)), the return value of the generative function ([`Trace.get_retval`](core.md#genjax.core.Trace.get_retval)), the identity of the generative function which produced the trace ([`Trace.get_gen_fn`](core.md#genjax.core.Trace.get_gen_fn)), the sample of traced random choices produced during the invocation ([`Trace.get_sample`](core.md#genjax.core.Trace.get_sample)) and _the score_ of the sample ([`Trace.get_score`](core.md#genjax.core.Trace.get_score)).
-
         """
         raise NotImplementedError
 
@@ -587,9 +589,50 @@ class GenerativeFunction(Pytree):
 
         The specification of this interface is parametric over the kind of `UpdateProblem` -- responding to an `UpdateProblem` instance requires that the generative function provides an implementation of a sequential Monte Carlo move in the [SMCP3](https://proceedings.mlr.press/v206/lew23a.html) framework.
 
-        **Mathematical specification of an SMCP3 move**
+        Examples:
+            Updating a trace in response to a request for a [`Target`][genjax.inference.Target] change:
+            ```python exec="yes" source="material-block" session="core"
+            from genjax import gen
+            from genjax import normal
+            from genjax import EmptyProblem
+            from genjax import Diff
+            from genjax import ChoiceMapBuilder as C
 
-        Here, we omit the measure theoretic formalization, and refer interested readers to [the paper](https://proceedings.mlr.press/v206/lew23a.html). The ingredients of such a move are:
+
+            @gen
+            def model(var):
+                v1 = normal(0.0, 1.0) @ "v1"
+                v2 = normal(v1, var) @ "v2"
+                return v2
+
+
+            # Generating an initial trace properly weighted according
+            # to the target induced by the constraint.
+            constraint = C.kw(v2=1.0)
+            initial_tr, w = model.importance(key, constraint, (1.0,))
+
+            # Updating the trace to a new target.
+            new_tr, inc_w, retdiff, bwd_prob = model.update(
+                key, initial_tr, EmptyProblem(), Diff.unknown_change((3.0,))
+            )
+            ```
+
+            Now, let's inspect the trace:
+            ```python exec="yes" html="true" source="material-block" session="core"
+            # Inspect the trace, the sampled values should not have changed!
+            sample = new_tr.get_sample()
+            print(sample["v1"], sample["v2"])
+            ```
+
+            And the return value diff:
+            ```python exec="yes" html="true" source="material-block" session="core"
+            # The return value also should not have changed!
+            print(retdiff.render_html())
+            ```
+
+        ## Mathematical ingredients of an SMCP3 move
+
+        Here, we omit the measure theoretic description, and refer interested readers to [the paper](https://proceedings.mlr.press/v206/lew23a.html). Informally, the ingredients of such a move are:
 
         * The previous target $T$.
         * The new target $T'$.
@@ -597,7 +640,14 @@ class GenerativeFunction(Pytree):
             * The K kernel is a kernel probabilistic program which accepts a previous sample $x_{t-1}$ from $T$ as an argument, may sample auxiliary randomness $u_K$, and returns a new sample $x_t$ approximately distributed according to $T'$, along with transformed randomness $u_L$.
             * The L kernel is a kernel probabilistic program which accepts the new sample $x_t$, and provides a density evaluator for the auxiliary randomness $u_L$ which K returns, and an inverter $x_t \\mapsto x_{t-1}$ which is _almost everywhere_ the identity function.
 
-        These ingredients are encapsulated in the types of the `update` interface:
+        The specification of these ingredients are encapsulated in the type signature of the `update` interface.
+
+        ## Understanding the `update` interface
+
+        The `update` interface uses the mathematical ingredients described above to perform mutations and incremental [`Weight`][genjax.core.Weight] computations on [`Trace`][genjax.core.Trace] instances, which allows Gen to provide automation for operations like:
+
+        * (**Proper reweighting**) Taking a pair ([`Weight`][genjax.core.Weight], [`Trace`][genjax.core.Trace]) which is properly weighted for an initial [`Target`][genjax.inference.Target] and re-weighting it for a new [`Target`][genjax.inference.Target].
+        * (**)
 
         **What are `Argdiffs`?**
 
@@ -628,7 +678,35 @@ class GenerativeFunction(Pytree):
 
         It is an error if the provided sample value is off the support of the distribution over the `Sample` type, or otherwise induces a partial constraint on the execution of the generative function (which would require the generative function to provide an `update` implementation which responds to the `UpdateProblem` induced by the [`importance`][genjax.core.GenerativeFunction.importance] interface).
 
-        This method is similar to density evaluation interfaces for distributions.
+        Examples:
+            This method is similar to density evaluation interfaces for distributions.
+            ```python exec="yes" html="true" source="material-block" session="core"
+            from genjax import normal
+            from genjax import ChoiceMapBuilder as C
+
+            sample = C.v(1.0)
+            score, retval = normal.assess(sample, (1.0, 1.0))
+            print(score, retval)
+            ```
+
+            But it also works with generative functions that sample from spaces with more structure:
+
+            ```python exec="yes" html="true" source="material-block" session="core"
+            from genjax import gen
+            from genjax import normal
+            from genjax import ChoiceMapBuilder as C
+
+
+            @gen
+            def model():
+                v1 = normal(0.0, 1.0) @ "v1"
+                v2 = normal(v1, 1.0) @ "v2"
+
+
+            sample = C.kw(v1=1.0, v2=0.0)
+            score, retval = model.assess(sample, ())
+            print(score, retval)
+            ```
         """
         raise NotImplementedError
 
