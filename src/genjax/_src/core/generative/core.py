@@ -31,6 +31,7 @@ from genjax._src.core.typing import (
     Callable,
     Dict,
     FloatArray,
+    InAxes,
     Int,
     IntArray,
     Is,
@@ -684,7 +685,7 @@ class GenerativeFunction(Pytree):
     def vmap(
         self,
         *args,
-        in_axes=0,
+        in_axes: InAxes = 0,
     ) -> "GenerativeFunction":
         from genjax import vmap_combinator
 
