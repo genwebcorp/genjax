@@ -32,6 +32,7 @@ from .core import (
     EmptyTrace,
     GenerativeFunction,
     GenerativeFunctionClosure,
+    GenericProblem,
     IgnoreKwargs,
     ImportanceProblem,
     MaskedConstraint,
@@ -46,6 +47,7 @@ from .core import (
     SumProblem,
     Trace,
     UpdateProblem,
+    UpdateProblemBuilder,
     Weight,
 )
 from .functional_types import Mask, Sum
@@ -59,6 +61,7 @@ __all__ = [
     "ChoiceMapBuilder",
     "Constraint",
     "EmptyConstraint",
+    "GenericProblem",
     "EmptyProblem",
     "EmptySample",
     "EmptyTrace",
@@ -85,5 +88,6 @@ __all__ = [
     "SumProblem",
     "Trace",
     "UpdateProblem",
+    "UpdateProblemBuilder",
     "Weight",
 ]

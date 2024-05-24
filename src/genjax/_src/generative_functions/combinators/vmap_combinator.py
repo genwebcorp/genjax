@@ -26,6 +26,7 @@ from genjax._src.core.generative import (
     EmptyTrace,
     GenerativeFunction,
     GenerativeFunctionClosure,
+    GenericProblem,
     ImportanceProblem,
     Retdiff,
     Retval,
@@ -42,6 +43,7 @@ from genjax._src.core.typing import (
     Any,
     Callable,
     FloatArray,
+    InAxes,
     Optional,
     PRNGKey,
     Tuple,
@@ -132,7 +134,7 @@ class VmapCombinator(GenerativeFunction):
     The source generative function.
     """
 
-    in_axes: Tuple = Pytree.static()
+    in_axes: InAxes = Pytree.static()
     """
     The axes specified, it should be a tuple which matches (or prefixes) the `Pytree` type of the argument tuple for the underlying `gen_fn`.
     """
@@ -146,10 +148,12 @@ class VmapCombinator(GenerativeFunction):
     def _static_check_broadcastable(self, args):
         # Argument broadcast semantics must be fully specified
         # in `in_axes`.
-        if not len(args) == len(self.in_axes):
-            raise Exception(
-                f"VmapCombinator requires that length of the provided in_axes kwarg match the number of arguments provided to the invocation.\nA mismatch occured with len(args) = {len(args)} and len(self.in_axes) = {len(self.in_axes)}"
-            )
+        if self.in_axes is not None:
+            axes_length = 1 if isinstance(self.in_axes, int) else len(self.in_axes)
+            if not len(args) == axes_length:
+                raise Exception(
+                    f"VmapCombinator requires that length of the provided in_axes kwarg match the number of arguments provided to the invocation.\nA mismatch occured with len(args) = {len(args)} and len(self.in_axes) = {axes_length}"
+                )
 
     def _static_broadcast_dim_length(self, args):
         def find_axis_size(axis, x):
@@ -196,7 +200,12 @@ class VmapCombinator(GenerativeFunction):
         def _importance(key, idx, choice_map, args):
             submap = choice_map(idx)
             tr, w, rd, bwd_problem = self.gen_fn.update(
-                key, EmptyTrace(self.gen_fn), ImportanceProblem(submap), args
+                key,
+                EmptyTrace(self.gen_fn),
+                GenericProblem(
+                    Diff.unknown_change(args),
+                    ImportanceProblem(submap),
+                ),
             )
             return tr, w, rd, ChoiceMap.idx(idx, bwd_problem)
 
@@ -225,7 +234,7 @@ class VmapCombinator(GenerativeFunction):
         def _update(key, idx, subtrace, argdiffs):
             subproblem = update_problem(idx)
             new_subtrace, w, retdiff, bwd_problem = self.gen_fn.update(
-                key, subtrace, subproblem, argdiffs
+                key, subtrace, GenericProblem(argdiffs, subproblem)
             )
             return new_subtrace, w, retdiff, ChoiceMap.idx(idx, bwd_problem)
 
@@ -254,7 +263,7 @@ class VmapCombinator(GenerativeFunction):
         def _update(key, idx, subtrace, argdiffs):
             subproblem = selection(idx)
             new_subtrace, w, retdiff, bwd_problem = self.gen_fn.update(
-                key, subtrace, subproblem, argdiffs
+                key, subtrace, GenericProblem(argdiffs, subproblem)
             )
             return new_subtrace, w, retdiff, ChoiceMap.idx(idx, bwd_problem)
 
@@ -268,7 +277,7 @@ class VmapCombinator(GenerativeFunction):
         return map_tr, w, retdiff, bwd_problems
 
     @typecheck
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
         trace: Trace,
@@ -286,6 +295,21 @@ class VmapCombinator(GenerativeFunction):
 
             case _:
                 raise Exception(f"Not implemented problem: {update_problem}")
+
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+            case _:
+                return self.update_change_target(
+                    key, trace, update_problem, Diff.no_change(trace.get_args())
+                )
 
     @typecheck
     def assess(
@@ -314,7 +338,7 @@ def vmap_combinator(
     gen_fn: Optional[GenerativeFunctionClosure] = None,
     /,
     *,
-    in_axes: Tuple,
+    in_axes: InAxes,
 ) -> Callable | VmapCombinator:
     def decorator(gen_fn) -> VmapCombinator:
         return VmapCombinator(gen_fn, in_axes)
