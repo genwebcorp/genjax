@@ -592,7 +592,7 @@ class GenerativeFunction(Pytree):
         update_problem: UpdateProblem,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
         """
-        Update a trace in response to an [`UpdateProblem`][genjax.core.UpdateProblem], returning a new [`Trace`][genjax.core.Trace], a proper [`Weight`][genjax.core.Weight] for the new target, a [`Retdiff`][genjax.core.Retdiff] return value tagged with change information, and a backward [`UpdateProblem`][genjax.core.UpdateProblem] which requests the reverse move (to go back to the original trace).
+        Update a trace in response to an [`UpdateProblem`][genjax.core.UpdateProblem], returning a new [`Trace`][genjax.core.Trace], an incremental [`Weight`][genjax.core.Weight] for the new target, a [`Retdiff`][genjax.core.Retdiff] return value tagged with change information, and a backward [`UpdateProblem`][genjax.core.UpdateProblem] which requests the reverse move (to go back to the original trace).
 
         The specification of this interface is parametric over the kind of `UpdateProblem` -- responding to an `UpdateProblem` instance requires that the generative function provides an implementation of a sequential Monte Carlo move in the [SMCP3](https://proceedings.mlr.press/v206/lew23a.html) framework. Users of inference algorithms are not expected to understand the ingredients, but inference algorithm developers are.
 
