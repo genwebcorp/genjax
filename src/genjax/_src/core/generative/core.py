@@ -662,14 +662,9 @@ class GenerativeFunction(Pytree):
 
         ## Understanding the `update` interface
 
-        The `update` interface uses the mathematical ingredients described above to perform probability-aware mutations and incremental [`Weight`][genjax.core.Weight] computations on [`Trace`][genjax.core.Trace] instances, which allows Gen to provide automation for operations like:
+        The `update` interface uses the mathematical ingredients described above to perform probability-aware mutations and incremental [`Weight`][genjax.core.Weight] computations on [`Trace`][genjax.core.Trace] instances, which allows Gen to provide automation to support inference agorithms like importance sampling, SMC, MCMC and many more.
 
-        * (**Proper reweighting**) Taking a pair ([`Weight`][genjax.core.Weight], [`Trace`][genjax.core.Trace]) which is properly weighted for an initial [`Target`][genjax.inference.Target] and re-weighting it for a new [`Target`][genjax.inference.Target].
-        * (**SMC**)
-
-        **Common usage: making a move via `GenericProblem`**
-
-        An `UpdateProblem` denotes a function $tr \\mapsto (T, T')$ from traces to a pair of targets (the previous target $T$, and the final target $T'$).
+        An `UpdateProblem` denotes a function $tr \\mapsto (T, T')$ from traces to a pair of targets (the previous [`Target`][genjax.inference.Target] $T$, and the final [`Target`][genjax.inference.Target] $T'$).
 
         Several common types of moves can be requested via the `GenericProblem` type:
 
