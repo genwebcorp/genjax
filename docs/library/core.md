@@ -3,10 +3,6 @@
 
 This page describes the set of core concepts and datatypes in GenJAX, including Gen's generative datatypes and concepts ([`GenerativeFunction`][genjax.core.GenerativeFunction], [`Trace`][genjax.core.Trace], [`Sample`][genjax.core.Sample], [`Constraint`][genjax.core.Constraint], and [`UpdateProblem`][genjax.core.UpdateProblem]), the core JAX compatibility datatypes ([`Pytree`][genjax.core.Pytree], [`Const`][genjax.core.Const], and [`Closure`][genjax.core.Closure]), as well as functionally inspired `Pytree` extensions ([`Mask`][genjax.core.Mask], [`Sum`][genjax.core.Sum]), and GenJAX's approach to "static" (JAX tracing time) typechecking ([`typecheck`][genjax.typing.typecheck]).
 
-## Generative types
-
-The main computational objects in Gen are _generative functions_. These objects support an abstract interface of methods and associated types. The interface is designed to allow the implementations of Bayesian inference algorithms to abstract over the implementation of common subroutines (like computing importance weights, or accept-reject ratios).
-
 ::: genjax.core.GenerativeFunction
     options:
       members:
