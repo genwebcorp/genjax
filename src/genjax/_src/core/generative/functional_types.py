@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
 from jax.tree_util import tree_map
@@ -26,7 +25,6 @@ from genjax._src.core.pytree import Pytree
 from genjax._src.core.typing import (
     Any,
     BoolArray,
-    Callable,
     Int,
     IntArray,
     List,
@@ -42,13 +40,9 @@ from genjax._src.core.typing import (
 
 @Pytree.dataclass(match_args=True)
 class Mask(Pytree):
-    """The `Mask` datatype wraps a value in a Boolean flag which denotes whether the data is valid or invalid to use in inference computations. The masking system is heavily influenced by the functional `Option` monad.
+    """The `Mask` datatype wraps a value in a Boolean flag which denotes whether the data is valid or invalid to use in inference computations.
 
     Masks can be used in a variety of ways as part of generative computations - their primary role is to denote data which is valid under inference computations. Valid data can be used as `Sample` instances, and participate in generative and inference computations (like scores, and importance weights or density ratios). Invalid data **should** be considered unusable, and should be handled with care.
-
-    !!! warning "Usage of invalid data"
-
-        **If you use invalid `Mask(False, data)` data in inference computations, you may encounter silently incorrect results.**
 
     Masks are also used internally by generative function combinators which include uncertainty over structure.
 
@@ -56,9 +50,13 @@ class Mask(Pytree):
 
     When users see `Mask` in their computations, they are expected to interact with them by either:
 
-    * Unmasking them using the `Mask.unmask` interface. This interface uses JAX's `checkify` transformation to ensure that masked data exposed to a user is used only when valid. If a user chooses to `Mask.unmask` a `Mask` instance, they are also expected to use [`jax.experimental.checkify.checkify`](https://jax.readthedocs.io/en/latest/_autosummary/jax.experimental.checkify.checkify.html) to transform their function to one which could return an error if the `Mask.flag` value is invalid.
+    * Unmasking them using the `Mask.unmask` interface, a potentially unsafe operation.
 
     * Destructuring them manually, and handling the cases.
+
+    ## Usage of invalid data
+
+    If you use invalid `Mask(False, data)` data in inference computations, you may encounter silently incorrect results.
     """
 
     flag: BoolArray
@@ -91,11 +89,7 @@ class Mask(Pytree):
     def unmask(self):
         """Unmask the `Mask`, returning the value within.
 
-        This operation is inherently unsafe with respect to inference semantics, and is only valid if the `Mask` wraps valid data at runtime. To enforce validity checks, use the console context `genjax.console(enforce_checkify=True)` to handle any code which utilizes `Mask.unmask` with [`jax.experimental.checkify.checkify`](https://jax.readthedocs.io/en/latest/_autosummary/jax.experimental.checkify.checkify.html).
-
-        Examples:
-            To enable runtime checks, the user must enable them explicitly in `genjax`.
-
+        This operation is inherently unsafe with respect to inference semantics, and is only valid if the `Mask` wraps valid data at runtime.
         """
 
         # If a user chooses to `unmask`, require that they
@@ -115,20 +109,6 @@ class Mask(Pytree):
         # Unsafe version of unmask -- should only be used internally,
         # or carefully.
         return self.value
-
-    @typecheck
-    def match(self, some: Callable) -> Any:
-        v = self.unmask()
-        return some(v)
-
-    @typecheck
-    def safe_match(self, none: Callable, some: Callable) -> Any:
-        return jax.lax.cond(
-            self.flag,
-            lambda v: some(v),
-            lambda v: none(),
-            self.value,
-        )
 
 
 @Pytree.dataclass(match_args=True)
