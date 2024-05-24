@@ -54,7 +54,7 @@ Weight = Annotated[
     Is[lambda arr: jnp.array(arr, copy=False).shape == ()],
 ]
 """
-A _weight_ is a density ratio (an importance weight), whose mathematical content is described in [`update`][genjax.core.GenerativeFunction.update].
+A _weight_ is a density ratio which often occurs in the context of proper weighting for [`Target`][genjax.inference.Target] distributions, or in Gen's [`update`][genjax.core.GenerativeFunction.update] interface, whose mathematical content is described in [`update`][genjax.core.GenerativeFunction.update].
 
 The type `Weight` does not enforce any meaningful mathematical invariants, but is used to denote the type of weights in GenJAX, to improve readability and parsing of interface specifications / expectations.
 """
@@ -63,7 +63,7 @@ Score = Annotated[
     Is[lambda arr: jnp.array(arr, copy=False).shape == ()],
 ]
 """
-A _score_ is a specific density ratio, described fully in [`simulate`][genjax.core.GenerativeFunction.simulate].
+A _score_ is a density ratio, described fully in [`simulate`][genjax.core.GenerativeFunction.simulate].
 
 The type `Score` does not enforce any meaningful mathematical invariants, but is used to denote the type of scores in the GenJAX system, to improve readability and parsing of interface specifications.
 
@@ -184,9 +184,9 @@ class UpdateProblemBuilder(Pytree):
 
 class Constraint(UpdateProblem):
     """
-    `Constraint` is a type of `UpdateProblem` specified by a function from the [`Sample`][genjax.core.Sample] space of the generative function to a value space `Y`, and a target value `v` in `Y`. In other words, the tuple $(S \\mapsto Y, v \\in Y)$.
+    `Constraint` is a type of [`UpdateProblem`][genjax.core.UpdateProblem] specified by a function from the [`Sample`][genjax.core.Sample] space of the generative function to a value space `Y`, and a target value `v` in `Y`. In other words, a [`Constraint`][genjax.core.Constraint] denotes the pair $(S \\mapsto Y, v \\in Y)$.
 
-    Constraints represent a request to force a value to satisfy a predicate. Just like all `UpdateProblem` instances, the generative function must respond to the request to update a trace to satisfy the constraint by providing an [`update`][genjax.core.GenerativeFunction.update] implementation which implements an SMCP3 move that transforms the provided trace to satisfy the specification.
+    Constraints represent a request to force a value to satisfy a predicate. Just like all [`UpdateProblem`][genjax.core.UpdateProblem] instances, the generative function must respond to the request to update a trace to satisfy the constraint by providing an [`update`][genjax.core.GenerativeFunction.update] implementation which implements an SMCP3 move that transforms the provided trace to satisfy the specification.
 
     Constraints can also be used to construct [`ImportanceProblem`](genjax.core.ImportanceProblem) instances, which are used to implement the [`importance`][genjax.core.GenerativeFunction.importance] interface. This interface implements a restricted SMCP3 move, from the empty target, to the target induced by the constraint.
     """
@@ -667,7 +667,7 @@ class GenerativeFunction(Pytree):
         * (**Proper reweighting**) Taking a pair ([`Weight`][genjax.core.Weight], [`Trace`][genjax.core.Trace]) which is properly weighted for an initial [`Target`][genjax.inference.Target] and re-weighting it for a new [`Target`][genjax.inference.Target].
         * (**SMC**)
 
-        **Specifying a move via `UpdateProblem`**
+        **Common usage: making a move via `GenericProblem`**
 
         An `UpdateProblem` denotes a function $tr \\mapsto (T, T')$ from traces to a pair of targets (the previous target $T$, and the final target $T'$).
 
@@ -683,20 +683,30 @@ class GenerativeFunction(Pytree):
         ```
 
         Creating problem instances is also possible using the `UpdateProblemBuilder`:
-        ```python exec="yes" source="material-block" session="core"
+        ```python exec="yes" html="true" source="material-block" session="core"
         from genjax import UpdateProblemBuilder as U
 
         g = U.g(
             Diff.unknown_change((3.0,)),  # "Argdiffs"
             EmptyProblem(),  # Subproblem
         )
+        print(g.render_html())
         ```
 
-        `GenericProblem` contains information about changes to the arguments of the generative function ([`Argdiffs`][genjax.core.Argdiffs]) and a subproblem which specifies an additional move to be performed. The subproblem can be a bonafide [`UpdateProblem`][genjax.core.UpdateProblem] itself, or a [`Constraint`][genjax.core.Constraint] like [`ChoiceMap`][genjax.core.ChoiceMap].
+        `GenericProblem` contains information about changes to the arguments of the generative function ([`Argdiffs`][genjax.core.Argdiffs]) and a subproblem which specifies an additional move to be performed. The subproblem can be a bonafide [`UpdateProblem`][genjax.core.UpdateProblem] itself, or a [`Constraint`][genjax.core.Constraint] (like [`ChoiceMap`][genjax.core.ChoiceMap]).
 
-        Argument changes induce changes to the distribution over samples, internal K and L proposals, and (by virtue of changes to $P$) target distributions. The [`Argdiffs`][genjax.core.Argdiffs] type denotes the type of values attached with a _change type_, a piece of data which indicates how the value has changed from the arguments which created the trace. Generative functions can utilize change types to inform efficient [`update`][genjax.core.GenerativeFunction.update] implementations.
+        ```python exec="yes" html="true" source="material-block" session="core"
+        new_tr, inc_w, retdiff, bwd_prob = model.update(
+            key,
+            initial_tr,
+            U.g(Diff.unknown_change((3.0,)), C.kw(v1=3.0)),
+        )
+        print((new_tr.get_sample()["v1"], w))
+        ```
 
-        The generative function is responsible for providing an [`update`][genjax.core.GenerativeFunction.update] implementation which responds to the request, by implementing an SMCP3 move which satisfies the specification.
+        **Additional notes on [`Argdiffs`][genjax.core.Argdiffs]**
+
+        Argument changes induce changes to the distribution over samples, internal K and L proposals, and (by virtue of changes to $P$) target distributions. The [`Argdiffs`][genjax.core.Argdiffs] type denotes the type of values attached with a _change type_, a piece of data which indicates how the value has changed from the arguments which created the trace. Generative functions can utilize change type information to inform efficient [`update`][genjax.core.GenerativeFunction.update] implementations.
         """
         raise NotImplementedError
 
@@ -719,7 +729,7 @@ class GenerativeFunction(Pytree):
 
             sample = C.v(1.0)
             score, retval = normal.assess(sample, (1.0, 1.0))
-            print(score, retval)
+            print((score, retval))
             ```
 
             But it also works with generative functions that sample from spaces with more structure:
@@ -738,7 +748,7 @@ class GenerativeFunction(Pytree):
 
             sample = C.kw(v1=1.0, v2=0.0)
             score, retval = model.assess(sample, ())
-            print(score, retval)
+            print((score, retval))
             ```
         """
         raise NotImplementedError
@@ -753,7 +763,34 @@ class GenerativeFunction(Pytree):
         """
         Returns a properly weighted pair, a [`Trace`][genjax.core.Trace] and a [`Weight`][genjax.core.Weight], properly weighted for the target induced by the generative function for the provided constraint and arguments.
 
-        Formally, creates an `UpdateProblem` which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
+        Formally, creates an [`UpdateProblem`][genjax.core.UpdateProblem] which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
+
+        Examples:
+            (**Full constraints**) A simple example using the `importance` interface on distributions:
+            ```python exec="yes" html="true" source="material-block" session="core"
+            from genjax import normal
+            from genjax import ChoiceMapBuilder as C
+
+            tr, w = normal.importance(key, C.v(1.0), (0.0, 1.0))
+            print(tr.get_sample().render_html())
+            ```
+
+            (**Internal proposal for partial constraints**) Specifying a _partial_ constraint on a [`StaticGenerativeFunction`][genjax.StaticGenerativeFunction]:
+            ```python exec="yes" html="true" source="material-block" session="core"
+            from genjax import flip, uniform, gen
+            from genjax import ChoiceMapBuilder as C
+
+
+            @gen
+            def model():
+                p = uniform(0.0, 1.0) @ "p"
+                f1 = flip(p) @ "f1"
+                f2 = flip(p) @ "f2"
+
+
+            tr, w = model.importance(key, C.kw(f1=True, f2=True), ())
+            print(tr.get_sample().render_html())
+            ```
         """
         tr, w, _, _ = self.update(
             key,
