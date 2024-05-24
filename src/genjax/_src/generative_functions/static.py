@@ -28,6 +28,7 @@ from genjax._src.core.generative import (
     EmptyProblem,
     EmptyTrace,
     GenerativeFunction,
+    GenericProblem,
     ImportanceProblem,
     Retdiff,
     Sample,
@@ -356,7 +357,7 @@ class UpdateHandler(StaticHandler):
         subproblem = self.get_subproblem(addr)
         self.key, sub_key = jax.random.split(self.key)
         (tr, w, retval_diff, bwd_problem) = gen_fn.update(
-            sub_key, subtrace, subproblem, argdiffs
+            sub_key, subtrace, GenericProblem(argdiffs, subproblem)
         )
         self.score += tr.get_score()
         self.weight += w
@@ -510,8 +511,8 @@ class StaticGenerativeFunction(GenerativeFunction):
 
         return StaticGenerativeFunction(kwarged_source)
 
-    @typecheck
     @GenerativeFunction.gfi_boundary
+    @typecheck
     def simulate(
         self,
         key: PRNGKey,
@@ -533,11 +534,10 @@ class StaticGenerativeFunction(GenerativeFunction):
         )
 
     @typecheck
-    @GenerativeFunction.gfi_boundary
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
-        trace: EmptyTrace | Trace,
+        trace: Trace,
         update_problem: UpdateProblem,
         argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
@@ -582,8 +582,26 @@ class StaticGenerativeFunction(GenerativeFunction):
             bwd_problem,
         )
 
-    @typecheck
     @GenerativeFunction.gfi_boundary
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+            case _:
+                return self.update(
+                    key,
+                    trace,
+                    GenericProblem(Diff.no_change(trace.get_args()), update_problem),
+                )
+
+    @GenerativeFunction.gfi_boundary
+    @typecheck
     def assess(
         self,
         sample: ChoiceMap,

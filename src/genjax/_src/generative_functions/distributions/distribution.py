@@ -29,6 +29,7 @@ from genjax._src.core.generative import (
     EmptyProblem,
     EmptyTrace,
     GenerativeFunction,
+    GenericProblem,
     ImportanceProblem,
     Mask,
     MaskedConstraint,
@@ -236,7 +237,7 @@ class Distribution(GenerativeFunction):
         old_sample = trace.get_sample()
 
         def update_branch(key, trace, constraint, argdiffs):
-            tr, w, rd, _ = self.update(key, trace, constraint, argdiffs)
+            tr, w, rd, _ = self.update(key, trace, GenericProblem(argdiffs, constraint))
             return (
                 tr,
                 w,
@@ -245,7 +246,9 @@ class Distribution(GenerativeFunction):
             )
 
         def do_nothing_branch(key, trace, constraint, argdiffs):
-            tr, w, _, _ = self.update(key, trace, EmptyProblem(), argdiffs)
+            tr, w, _, _ = self.update(
+                key, trace, GenericProblem(argdiffs, EmptyProblem())
+            )
             return (
                 tr,
                 w,
@@ -286,9 +289,9 @@ class Distribution(GenerativeFunction):
                     EmptyProblem(),
                 )
 
-            case MaskedConstraint(flag, spec):
+            case MaskedConstraint(flag, problem):
                 if staged_check(flag):
-                    return self.update(key, trace, spec, argdiffs)
+                    return self.update(key, trace, GenericProblem(argdiffs, problem))
                 else:
                     return self.update_constraint_masked_constraint(
                         key, trace, constraint, argdiffs
@@ -298,7 +301,7 @@ class Distribution(GenerativeFunction):
                 check = constraint.has_value()
                 v = constraint.get_value()
                 if isinstance(v, UpdateProblem):
-                    return self.update(key, trace, v, argdiffs)
+                    return self.update(key, trace, GenericProblem(argdiffs, v))
                 elif static_check_is_concrete(check) and check:
                     fwd = self.estimate_logpdf(key, v, *primals)
                     bwd = trace.get_score()
@@ -370,7 +373,9 @@ class Distribution(GenerativeFunction):
         old_value = trace.get_retval()
         primals = Diff.tree_primal(argdiffs)
         possible_trace, w, retdiff, bwd_problem = self.update(
-            key, trace, problem, argdiffs
+            key,
+            trace,
+            GenericProblem(argdiffs, problem),
         )
         new_value = possible_trace.get_retval()
         w = w * flag
@@ -410,13 +415,14 @@ class Distribution(GenerativeFunction):
         return self.update(
             key,
             trace,
-            MaskedProblem.maybe(check, ProjectProblem()),
-            argdiffs,
+            GenericProblem(
+                argdiffs,
+                MaskedProblem.maybe(check, ProjectProblem()),
+            ),
         )
 
-    @GenerativeFunction.gfi_boundary
     @typecheck
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
         trace: Trace,
@@ -442,14 +448,28 @@ class Distribution(GenerativeFunction):
                 )
 
             case ImportanceProblem(constraint) if isinstance(trace, EmptyTrace):
-                return self.update_importance(
-                    key, constraint, Diff.tree_primal(argdiffs)
-                )
+                primals = Diff.tree_primal(argdiffs)
+                return self.update_importance(key, constraint, primals)
 
             case _:
                 raise Exception(f"Not implement fwd problem: {update_problem}.")
 
     @GenerativeFunction.gfi_boundary
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+            case _:
+                return self.update_change_target(
+                    key, trace, update_problem, Diff.no_change(trace.get_args())
+                )
+
     @typecheck
     def assess(
         self,

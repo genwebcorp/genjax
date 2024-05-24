@@ -26,6 +26,7 @@ from genjax._src.core.generative import (
     EmptyTrace,
     GenerativeFunction,
     GenerativeFunctionClosure,
+    GenericProblem,
     ImportanceProblem,
     Retdiff,
     Retval,
@@ -199,7 +200,12 @@ class VmapCombinator(GenerativeFunction):
         def _importance(key, idx, choice_map, args):
             submap = choice_map(idx)
             tr, w, rd, bwd_problem = self.gen_fn.update(
-                key, EmptyTrace(self.gen_fn), ImportanceProblem(submap), args
+                key,
+                EmptyTrace(self.gen_fn),
+                GenericProblem(
+                    Diff.unknown_change(args),
+                    ImportanceProblem(submap),
+                ),
             )
             return tr, w, rd, ChoiceMap.idx(idx, bwd_problem)
 
@@ -228,7 +234,7 @@ class VmapCombinator(GenerativeFunction):
         def _update(key, idx, subtrace, argdiffs):
             subproblem = update_problem(idx)
             new_subtrace, w, retdiff, bwd_problem = self.gen_fn.update(
-                key, subtrace, subproblem, argdiffs
+                key, subtrace, GenericProblem(argdiffs, subproblem)
             )
             return new_subtrace, w, retdiff, ChoiceMap.idx(idx, bwd_problem)
 
@@ -257,7 +263,7 @@ class VmapCombinator(GenerativeFunction):
         def _update(key, idx, subtrace, argdiffs):
             subproblem = selection(idx)
             new_subtrace, w, retdiff, bwd_problem = self.gen_fn.update(
-                key, subtrace, subproblem, argdiffs
+                key, subtrace, GenericProblem(argdiffs, subproblem)
             )
             return new_subtrace, w, retdiff, ChoiceMap.idx(idx, bwd_problem)
 
@@ -271,7 +277,7 @@ class VmapCombinator(GenerativeFunction):
         return map_tr, w, retdiff, bwd_problems
 
     @typecheck
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
         trace: Trace,
@@ -289,6 +295,21 @@ class VmapCombinator(GenerativeFunction):
 
             case _:
                 raise Exception(f"Not implemented problem: {update_problem}")
+
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+            case _:
+                return self.update_change_target(
+                    key, trace, update_problem, Diff.no_change(trace.get_args())
+                )
 
     @typecheck
     def assess(
