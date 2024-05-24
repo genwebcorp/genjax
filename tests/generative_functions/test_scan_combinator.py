@@ -18,6 +18,7 @@ import pytest
 from genjax import ChoiceMapBuilder as C
 from genjax import Diff
 from genjax import SelectionBuilder as S
+from genjax import UpdateProblemBuilder as U
 
 
 class TestScanSimpleNormal:
@@ -69,8 +70,10 @@ class TestScanSimpleNormal:
             new_tr, w, _rd, _bwd_problem = jax.jit(scanner.update)(
                 sub_key,
                 tr,
-                C[i, "z"].set(1.0),
-                Diff.no_change((0.01, None)),
+                U.g(
+                    Diff.no_change((0.01, None)),
+                    C[i, "z"].set(1.0),
+                ),
             )
             assert new_tr.get_sample()[i, "z"].unmask() == 1.0
             assert tr.get_score() + w == pytest.approx(new_tr.get_score(), 0.0001)

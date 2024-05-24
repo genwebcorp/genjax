@@ -19,6 +19,7 @@ from genjax._src.core.generative import (
     ChoiceMap,
     EmptyTrace,
     GenerativeFunction,
+    GenericProblem,
     Mask,
     MaskedProblem,
     MaskedSample,
@@ -94,7 +95,7 @@ class MaskCombinator(GenerativeFunction):
         return MaskTrace(self, tr, check)
 
     @typecheck
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
         trace: Trace,
@@ -110,7 +111,7 @@ class MaskCombinator(GenerativeFunction):
                 inner_trace = EmptyTrace(self.gen_fn)
 
         premasked_trace, w, retdiff, bwd_problem = self.gen_fn.update(
-            key, inner_trace, update_problem, tuple(inner_argdiffs)
+            key, inner_trace, GenericProblem(tuple(inner_argdiffs), update_problem)
         )
         w = select(
             check,
@@ -123,6 +124,21 @@ class MaskCombinator(GenerativeFunction):
             Mask.maybe(check_diff, retdiff),
             MaskedProblem(check, bwd_problem),
         )
+
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+            case _:
+                return self.update_change_target(
+                    key, trace, update_problem, Diff.no_change(trace.get_args())
+                )
 
     @typecheck
     def assess(

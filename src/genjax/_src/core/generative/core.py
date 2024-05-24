@@ -115,14 +115,6 @@ class UpdateProblem(Pytree):
 
     """
 
-    @classmethod
-    def empty(cls):
-        return EmptyProblem()
-
-    @classmethod
-    def maybe(cls, flag: Bool | BoolArray, problem: "UpdateProblem"):
-        return MaskedProblem.maybe_empty(flag, problem)
-
 
 @Pytree.dataclass
 class EmptyProblem(UpdateProblem):
@@ -157,6 +149,12 @@ class SumProblem(UpdateProblem):
 
 
 @Pytree.dataclass(match_args=True)
+class GenericProblem(UpdateProblem):
+    argdiffs: Argdiffs
+    subproblem: UpdateProblem
+
+
+@Pytree.dataclass(match_args=True)
 class ImportanceProblem(UpdateProblem):
     constraint: "Constraint"
 
@@ -164,6 +162,20 @@ class ImportanceProblem(UpdateProblem):
 @Pytree.dataclass
 class ProjectProblem(UpdateProblem):
     pass
+
+
+class UpdateProblemBuilder(Pytree):
+    @classmethod
+    def empty(cls):
+        return EmptyProblem()
+
+    @classmethod
+    def maybe(cls, flag: Bool | BoolArray, problem: "UpdateProblem"):
+        return MaskedProblem.maybe_empty(flag, problem)
+
+    @classmethod
+    def g(cls, argdiffs: Argdiffs, subproblem: "UpdateProblem") -> "UpdateProblem":
+        return GenericProblem(argdiffs, subproblem)
 
 
 ###############
@@ -363,20 +375,12 @@ class Trace(Pytree):
         self,
         key: PRNGKey,
         problem: UpdateProblem,
-        argdiffs: Optional[Argdiffs] = None,
     ) -> Tuple["Trace", Weight, Retdiff, UpdateProblem]:
         """
         This method calls out to the underlying [`GenerativeFunction.update`][genjax.core.GenerativeFunction.update] method - see [`UpdateProblem`][genjax.core.UpdateProblem] and [`update`][genjax.core.GenerativeFunction.update] for more information.
         """
         gen_fn = self.get_gen_fn()
-        if argdiffs:
-            check = Diff.static_check_tree_diff(argdiffs)
-            argdiffs = argdiffs if check else Diff.tree_diff_unknown_change(argdiffs)
-            return gen_fn.update(key, self, problem, argdiffs)
-        else:
-            old_args = self.get_args()
-            argdiffs = Diff.tree_diff_no_change(old_args)
-            return gen_fn.update(key, self, problem, argdiffs)
+        return gen_fn.update(key, self, problem)
 
     @typecheck
     def project(
@@ -385,7 +389,11 @@ class Trace(Pytree):
         problem: ProjectProblem,
     ) -> Weight:
         gen_fn = self.get_gen_fn()
-        _, w, _, _ = gen_fn.update(key, self, problem, Diff.no_change(self.get_args()))
+        _, w, _, _ = gen_fn.update(
+            key,
+            self,
+            GenericProblem(Diff.no_change(self.get_args()), problem),
+        )
         return -w
 
     ###################
@@ -581,7 +589,6 @@ class GenerativeFunction(Pytree):
         key: PRNGKey,
         trace: Trace,
         update_problem: UpdateProblem,
-        argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
         """
         Update a trace in response to an [`UpdateProblem`][genjax.core.UpdateProblem], returning a new [`Trace`][genjax.core.Trace], a proper [`Weight`][genjax.core.Weight] for the new target, a [`Retdiff`][genjax.core.Retdiff] return value tagged with change information, and a backward [`UpdateProblem`][genjax.core.UpdateProblem] which requests the reverse move (to go back to the original trace).
@@ -645,12 +652,10 @@ class GenerativeFunction(Pytree):
 
         Formally, creates an `UpdateProblem` which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
         """
-        importance_problem = ImportanceProblem(constraint)
         tr, w, _, _ = self.update(
             key,
             EmptyTrace(self),
-            importance_problem,
-            Diff.unknown_change(args),
+            GenericProblem(Diff.unknown_change(args), ImportanceProblem(constraint)),
         )
         return tr, w
 
@@ -958,19 +963,22 @@ class GenerativeFunctionClosure(GenerativeFunction):
         key: PRNGKey,
         trace: Trace,
         problem: UpdateProblem,
-        argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
-        full_argdiffs = (*self.args, *argdiffs)
-        if self.kwargs:
-            maybe_kwarged_gen_fn = self.get_gen_fn_with_kwargs()
-            return maybe_kwarged_gen_fn.update(
-                key,
-                trace,
-                problem,
-                (full_argdiffs, self.kwargs),
-            )
-        else:
-            return self.gen_fn.update(key, trace, problem, full_argdiffs)
+        match problem:
+            case GenericProblem(argdiffs, subproblem):
+                full_argdiffs = (*self.args, *argdiffs)
+                if self.kwargs:
+                    maybe_kwarged_gen_fn = self.get_gen_fn_with_kwargs()
+                    return maybe_kwarged_gen_fn.update(
+                        key,
+                        trace,
+                        GenericProblem(
+                            (full_argdiffs, self.kwargs),
+                            subproblem,
+                        ),
+                    )
+            case _:
+                raise NotImplementedError
 
     @GenerativeFunction.gfi_boundary
     @typecheck

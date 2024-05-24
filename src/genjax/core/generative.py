@@ -35,6 +35,7 @@ from genjax._src.core.generative import (
     Sum,
     Trace,
     UpdateProblem,
+    UpdateProblemBuilder,
     Weight,
 )
 
@@ -58,6 +59,7 @@ __all__ = [
     "Score",
     "Selection",
     "SelectionBuilder",
+    "UpdateProblemBuilder",
     "Sum",
     "Trace",
     "UpdateProblem",

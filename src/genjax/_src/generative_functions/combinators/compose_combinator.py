@@ -17,6 +17,7 @@ from genjax._src.core.generative import (
     Argdiffs,
     EmptyTrace,
     GenerativeFunction,
+    GenericProblem,
     Retdiff,
     Sample,
     Score,
@@ -84,7 +85,7 @@ class ComposeCombinator(GenerativeFunction):
         return ComposeTrace(self, tr, args, retval)
 
     @typecheck
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
         trace: Trace,
@@ -105,7 +106,7 @@ class ComposeCombinator(GenerativeFunction):
             case EmptyTrace():
                 inner_trace = EmptyTrace(self.inner)
         tr, w, inner_retdiff, bwd_problem = self.inner.update(
-            key, inner_trace, update_problem, inner_argdiffs
+            key, inner_trace, GenericProblem(inner_argdiffs, update_problem)
         )
         inner_retval_primals = Diff.tree_primal((inner_retdiff,))
         inner_retval_tangents = Diff.tree_tangent((inner_retdiff,))
@@ -125,6 +126,21 @@ class ComposeCombinator(GenerativeFunction):
             retval_diff,
             bwd_problem,
         )
+
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+            case _:
+                return self.update_change_target(
+                    key, trace, update_problem, Diff.no_change(trace.get_args())
+                )
 
     @typecheck
     def assess(

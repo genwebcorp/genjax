@@ -17,6 +17,7 @@ import jax
 import pytest
 from genjax import ChoiceMapBuilder as C
 from genjax import Diff
+from genjax import UpdateProblemBuilder as U
 from jax import numpy as jnp
 
 
@@ -151,7 +152,12 @@ class TestSwitchCombinator:
         score = tr.get_score()
         key, sub_key = jax.random.split(key)
         (tr, _, _, _) = jax.jit(switch.update)(
-            sub_key, tr, C.n(), (Diff.no_change(0), ())
+            sub_key,
+            tr,
+            U.g(
+                (Diff.no_change(0), ()),
+                C.n(),
+            ),
         )
         assert score == tr.get_score()
         assert v1 == tr.get_sample()["y1"]
@@ -189,7 +195,12 @@ class TestSwitchCombinator:
 
         key, update_key = jax.random.split(key)
         (new_tr, new_wt, _, _) = switch.update(
-            update_key, tr, C.n(), (Diff.unknown_change(1), (), ())
+            update_key,
+            tr,
+            U.g(
+                (Diff.unknown_change(1), (), ()),
+                C.n(),
+            ),
         )
         (idx, *_) = new_tr.get_args()
         assert idx == 1

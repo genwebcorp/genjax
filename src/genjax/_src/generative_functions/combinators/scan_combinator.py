@@ -22,6 +22,7 @@ from genjax._src.core.generative import (
     EmptyProblem,
     EmptyTrace,
     GenerativeFunction,
+    GenericProblem,
     ImportanceProblem,
     Retdiff,
     Sample,
@@ -221,8 +222,10 @@ class ScanCombinator(GenerativeFunction):
             tr, w, _retdiff, bwd_problem = self.kernel_gen_fn.update(
                 key,
                 EmptyTrace(self.kernel_gen_fn),
-                ImportanceProblem(constraint),
-                Diff.unknown_change((carry, scanned_in)),
+                GenericProblem(
+                    Diff.unknown_change((carry, scanned_in)),
+                    ImportanceProblem(constraint),
+                ),
             )
             (carry, scanned_out) = tr.get_retval()
             score = tr.get_score()
@@ -287,7 +290,12 @@ class ScanCombinator(GenerativeFunction):
                 kernel_retdiff,
                 bwd_problem,
             ) = self.kernel_gen_fn.update(
-                key, subtrace, subproblem, (carry, scanned_in)
+                key,
+                subtrace,
+                GenericProblem(
+                    (carry, scanned_in),
+                    subproblem,
+                ),
             )
             (carry_retdiff, scanned_out_retdiff) = kernel_retdiff
             score = new_subtrace.get_score()
@@ -397,7 +405,7 @@ class ScanCombinator(GenerativeFunction):
         )
 
     @typecheck
-    def update(
+    def update_change_target(
         self,
         key: PRNGKey,
         trace: Trace,
@@ -420,6 +428,29 @@ class ScanCombinator(GenerativeFunction):
             case _:
                 return self.update_generic(key, trace, update_problem, argdiffs)
 
+    @GenerativeFunction.gfi_boundary
+    @typecheck
+    def update(
+        self,
+        key: PRNGKey,
+        trace: Trace,
+        update_problem: UpdateProblem,
+    ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
+        match update_problem:
+            case GenericProblem(argdiffs, subproblem):
+                return self.update_change_target(key, trace, subproblem, argdiffs)
+
+            case _:
+                return self.update(
+                    key,
+                    trace,
+                    GenericProblem(
+                        Diff.no_change(trace.get_args()),
+                        update_problem,
+                    ),
+                )
+
+    @GenerativeFunction.gfi_boundary
     @typecheck
     def assess(
         self,
