@@ -758,8 +758,6 @@ class GenerativeFunction(Pytree):
         """
         Returns a properly weighted pair, a [`Trace`][genjax.core.Trace] and a [`Weight`][genjax.core.Weight], properly weighted for the target induced by the generative function for the provided constraint and arguments.
 
-        Formally, creates an [`UpdateProblem`][genjax.core.UpdateProblem] which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
-
         Examples:
             (**Full constraints**) A simple example using the `importance` interface on distributions:
             ```python exec="yes" html="true" source="material-block" session="core"
@@ -786,6 +784,8 @@ class GenerativeFunction(Pytree):
             tr, w = model.importance(key, C.kw(f1=True, f2=True), ())
             print(tr.get_sample().render_html())
             ```
+
+        Under the hood, creates an [`UpdateProblem`][genjax.core.UpdateProblem] which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
         """
         tr, w, _, _ = self.update(
             key,
