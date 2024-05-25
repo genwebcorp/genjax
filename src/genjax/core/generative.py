@@ -22,6 +22,7 @@ from genjax._src.core.generative import (
     EmptyProblem,
     GenerativeFunction,
     GenerativeFunctionClosure,
+    GenericProblem,
     Mask,
     MaskedConstraint,
     MaskedProblem,
@@ -63,5 +64,6 @@ __all__ = [
     "Sum",
     "Trace",
     "UpdateProblem",
+    "GenericProblem",
     "Weight",
 ]
