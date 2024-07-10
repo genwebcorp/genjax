@@ -344,7 +344,9 @@ class ScanCombinator(GenerativeFunction):
                     subproblem,
                 ),
             )
-            (carry_retdiff, scanned_out_retdiff) = kernel_retdiff
+            (carry_retdiff, scanned_out_retdiff) = Diff.tree_diff_unknown_change(
+                kernel_retdiff
+            )
             score = new_subtrace.get_score()
             return (carry_retdiff, score), (
                 new_subtrace,
@@ -355,7 +357,7 @@ class ScanCombinator(GenerativeFunction):
 
         def _update(carry, scanned_over):
             key, idx, carried_value = carry
-            (subtrace, *scanned_in) = scanned_over
+            subtrace, scanned_in = scanned_over
             key = jax.random.fold_in(key, idx)
             subproblem = self._get_subproblem(problem, idx)
             (

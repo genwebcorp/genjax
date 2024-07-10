@@ -15,11 +15,13 @@
 import genjax
 import jax
 import jax.numpy as jnp
+import penzai.pz as pz
 import pytest
 from genjax import ChoiceMapBuilder as C
 from genjax import Diff
 from genjax import SelectionBuilder as S
 from genjax import UpdateProblemBuilder as U
+from genjax.typing import FloatArray
 
 
 @genjax.iterate(n=10)
@@ -289,7 +291,7 @@ class TestAccumulateReduceMethods:
         """
 
         fib = jnp.array([[1, 1], [1, 0]])
-        repeated_fib = jnp.array([fib, fib, fib, fib, fib])
+        repeated_fib = jnp.broadcast_to(fib, (5, 2, 2))
 
         @genjax.gen
         def matmul(prev, next):
@@ -309,3 +311,30 @@ class TestAccumulateReduceMethods:
         ])
 
         assert jnp.array_equal(result, expected)
+
+
+class TestScanUpdate:
+    @pytest.fixture
+    def key(self):
+        return jax.random.PRNGKey(314159)
+
+    def test_scan_update(self, key):
+        @pz.pytree_dataclass
+        class A(genjax.Pytree):
+            x: FloatArray
+
+        @genjax.gen
+        def step(b, a):
+            return genjax.normal(b + a.x, 1e-6) @ "b", None
+
+        @genjax.gen
+        def model(k):
+            return step.scan(n=3)(k, A(jnp.array([1.0, 2.0, 3.0]))) @ "steps"
+
+        k1, k2 = jax.random.split(key)
+        tr = model.simulate(k1, (jnp.array(1.0),))
+        u, w, _, _ = tr.update(k2, C["steps", 1, "b"].set(99.0))
+        assert jnp.allclose(
+            u.get_choices()["steps", ..., "b"], jnp.array([2.0, 99.0, 7.0]), atol=0.1
+        )
+        assert w < -100.0
