@@ -32,6 +32,7 @@ book:
     - cookbook/expressivity/custom_distribution.ipynb
     - cookbook/inference/importance_sampling.ipynb
     - cookbook/inference/custom_proposal.ipynb
+    - cookbook/expressivity/ravi_stack.ipynb
     - cookbook/library_author/dimap_combinator.ipynb
 
 bibliography: references.bib
