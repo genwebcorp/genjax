@@ -18,7 +18,6 @@ from abc import abstractmethod
 import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
-from jax.lax import cond
 
 from genjax._src.checkify import optional_check
 from genjax._src.core.generative import (
@@ -147,7 +146,7 @@ class Distribution(GenerativeFunction):
                     w = self.estimate_logpdf(key, v, *args)
                     return (w, w, v)
 
-                score, w, new_v = cond(flag, _importance, _simulate, key, value)
+                score, w, new_v = jax.lax.cond(flag, _importance, _simulate, key, value)
                 tr = DistributionTrace(self, args, new_v, score)
                 bwd_problem = MaskedProblem(flag, ProjectProblem())
                 return tr, w, bwd_problem
@@ -216,7 +215,7 @@ class Distribution(GenerativeFunction):
         trace: Trace,
         argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
-        sample = trace.get_sample()
+        sample = trace.get_choices()
         primals = Diff.tree_primal(argdiffs)
         new_score, _ = self.assess(sample, primals)
         new_trace = DistributionTrace(self, primals, sample.get_value(), new_score)
@@ -234,7 +233,7 @@ class Distribution(GenerativeFunction):
         constraint: MaskedConstraint,
         argdiffs: Argdiffs,
     ) -> Tuple[Trace, Weight, Retdiff, UpdateProblem]:
-        old_sample = trace.get_sample()
+        old_sample = trace.get_choices()
 
         def update_branch(key, trace, constraint, argdiffs):
             tr, w, rd, _ = self.update(key, trace, GenericProblem(argdiffs, constraint))
@@ -245,7 +244,7 @@ class Distribution(GenerativeFunction):
                 MaskedProblem(True, old_sample),
             )
 
-        def do_nothing_branch(key, trace, constraint, argdiffs):
+        def do_nothing_branch(key, trace, _, argdiffs):
             tr, w, _, _ = self.update(
                 key, trace, GenericProblem(argdiffs, EmptyProblem())
             )
@@ -276,7 +275,7 @@ class Distribution(GenerativeFunction):
         primals = Diff.tree_primal(argdiffs)
         match constraint:
             case EmptyConstraint():
-                old_sample = trace.get_sample()
+                old_sample = trace.get_choices()
                 old_retval = trace.get_retval()
                 new_score, _ = self.assess(old_sample, primals)
                 new_trace = DistributionTrace(
@@ -316,7 +315,7 @@ class Distribution(GenerativeFunction):
                         discard,
                     )
                 elif static_check_is_concrete(check):
-                    value_chm = trace.get_sample()
+                    value_chm = trace.get_choices()
                     v = value_chm.get_value()
                     fwd = self.estimate_logpdf(key, v, *primals)
                     bwd = trace.get_score()
@@ -342,7 +341,7 @@ class Distribution(GenerativeFunction):
                     masked_value: Mask = v
                     flag = masked_value.flag
                     new_value = masked_value.value
-                    old_value = trace.get_sample().get_value()
+                    old_value = trace.get_choices().get_value()
 
                     new_value, w, score = jax.lax.cond(
                         flag,
@@ -579,8 +578,8 @@ class ExactDensityFromCallables(ExactDensity):
 
 @typecheck
 def exact_density(
-    sample: Callable,
-    logpdf: Callable,
+    sample: Callable[..., Any],
+    logpdf: Callable[..., Any],
 ):
     if not isinstance(sample, Closure):
         sample = Pytree.partial()(sample)
