@@ -170,7 +170,6 @@ __all__ = [
     "Int",
     "IntArray",
     "Is",
-    "List",
     "PRNGKey",
     "ParamSpec",
     "ScalarBool",
