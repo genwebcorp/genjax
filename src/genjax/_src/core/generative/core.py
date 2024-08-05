@@ -1718,6 +1718,8 @@ class GenerativeFunctionClosure(GenerativeFunction):
                             subproblem,
                         ),
                     )
+                else:
+                    return self.gen_fn.update(key, trace, update_problem)
             case _:
                 raise NotImplementedError
 

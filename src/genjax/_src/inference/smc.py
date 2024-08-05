@@ -293,7 +293,7 @@ class ImportanceK(SMCAlgorithm):
     importance sampling."""
 
     target: Target
-    q: Optional[SampleDistribution] = Pytree.field(default=Pytree.const(None))
+    q: SampleDistribution = Pytree.field(default=Pytree.const(None))
     k_particles: Int = Pytree.static(default=2)
 
     def get_num_particles(self):
