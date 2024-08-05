@@ -17,7 +17,7 @@ codebase.
 Type annotations in the codebase are exported out of this module for consistency.
 """
 
-from typing import Annotated  # noqa: F401, I001
+from typing import Annotated  # noqa: I001
 from types import EllipsisType
 
 import beartype.typing as btyping
@@ -170,8 +170,8 @@ __all__ = [
     "Int",
     "IntArray",
     "Is",
-    "ParamSpec",
     "PRNGKey",
+    "ParamSpec",
     "ScalarBool",
     "ScalarShaped",
     "Sequence",
