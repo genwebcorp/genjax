@@ -266,7 +266,7 @@ def select_none():
 
 @Pytree.dataclass
 class StaticSel(Selection):
-    addr: StaticAddressComponent | EllipsisType = Pytree.static()
+    addr: ExtendedStaticAddressComponent = Pytree.static()
     s: Selection = Pytree.field()
 
     def check(self) -> Bool | BoolArray:
