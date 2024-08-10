@@ -1560,21 +1560,6 @@ class GenerativeFunction(Pytree):
 
         return marginal(selection=selection, algorithm=algorithm)(self)
 
-    def target(
-        self,
-        /,
-        *,
-        constraint: Constraint,
-        args: tuple,
-    ):
-        from genjax import Target
-
-        return Target(
-            self,
-            args,
-            constraint,
-        )
-
 
 # NOTE: Setup a global handler stack for the `trace` callee sugar.
 # C.f. above.
@@ -1718,6 +1703,8 @@ class GenerativeFunctionClosure(GenerativeFunction):
                             subproblem,
                         ),
                     )
+                else:
+                    return self.gen_fn.update(key, trace, update_problem)
             case _:
                 raise NotImplementedError
 
