@@ -155,11 +155,13 @@ def simple_normal(custom_tree):
 
 @Pytree.dataclass
 class _CustomNormal(genjax.Distribution):
-    def estimate_logpdf(self, key, v, custom_tree):
-        w, _ = genjax.normal.assess(v, custom_tree.x, custom_tree.y)
+    def estimate_logpdf(self, key, v, *args):
+        v, custom_tree = args
+        w, _ = genjax.normal.assess(v, (custom_tree.x, custom_tree.y))
         return w
 
-    def random_weighted(self, key, custom_tree):
+    def random_weighted(self, key, *args):
+        (custom_tree,) = args
         return genjax.normal.random_weighted(key, custom_tree.x, custom_tree.y)
 
 
