@@ -27,8 +27,8 @@ from genjax._src.core.generative import (
     GenerativeFunction,
     GenericProblem,
     ImportanceProblem,
+    R,
     Retdiff,
-    Retval,
     Score,
     Selection,
     Trace,
@@ -42,6 +42,7 @@ from genjax._src.core.typing import (
     Any,
     Callable,
     FloatArray,
+    Generic,
     InAxes,
     PRNGKey,
     typecheck,
@@ -80,7 +81,7 @@ class VmapTrace(Trace):
 
 
 @Pytree.dataclass
-class VmapCombinator(GenerativeFunction):
+class VmapCombinator(Generic[R], GenerativeFunction[R]):
     """`VmapCombinator` is a generative function which lifts another generative function to support `vmap`-based patterns of parallel (and generative) computation.
 
     In contrast to the full set of options which [`jax.vmap`](https://jax.readthedocs.io/en/latest/_autosummary/jax.vmap.html), this combinator expects an `in_axes: tuple` configuration argument, which indicates how the underlying `vmap` patterns should be broadcast across the input arguments to the generative function.
@@ -311,7 +312,7 @@ class VmapCombinator(GenerativeFunction):
         self,
         sample: ChoiceMap,
         args: tuple,
-    ) -> tuple[Score, Retval]:
+    ) -> tuple[Score, R]:
         self._static_check_broadcastable(args)
         broadcast_dim_length = self._static_broadcast_dim_length(args)
         idx_array = jnp.arange(0, broadcast_dim_length)
