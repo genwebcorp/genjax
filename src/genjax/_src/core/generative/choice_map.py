@@ -50,7 +50,6 @@ ExtendedStaticAddressComponent = StaticAddressComponent | EllipsisType
 ExtendedAddressComponent = ExtendedStaticAddressComponent | DynamicAddressComponent
 ExtendedAddress = tuple[()] | tuple[ExtendedAddressComponent, ...]
 
-
 ##############
 # Selections #
 ##############
