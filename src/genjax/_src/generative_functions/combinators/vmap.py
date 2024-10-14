@@ -24,7 +24,6 @@ import jax.tree_util as jtu
 from genjax._src.core.generative import (
     Argdiffs,
     ChoiceMap,
-    ChoiceMapConstraint,
     Constraint,
     EditRequest,
     GenerativeFunction,
@@ -36,6 +35,7 @@ from genjax._src.core.generative import (
     Update,
     Weight,
 )
+from genjax._src.core.generative.choice_map import ChoiceMapConstraint
 from genjax._src.core.interpreters.incremental import Diff
 from genjax._src.core.pytree import Pytree
 from genjax._src.core.typing import (
@@ -76,9 +76,6 @@ class VmapTrace(Generic[R], Trace[R]):
 
     def get_gen_fn(self):
         return self.gen_fn
-
-    def get_sample(self) -> ChoiceMap:
-        return self.chm
 
     def get_choices(self) -> ChoiceMap:
         return self.chm
@@ -196,7 +193,7 @@ class VmapCombinator(Generic[R], GenerativeFunction[R]):
 
         def _inner(key, idx, args):
             # Here we have to vmap across indices and perform individual lookups because the user might only constrain a subset of all indices. This forces recomputation.
-            submap = constraint(idx)
+            submap = constraint.choice_map(idx)
             tr, w = self.gen_fn.generate(
                 key,
                 ChoiceMapConstraint(submap),
@@ -219,11 +216,11 @@ class VmapCombinator(Generic[R], GenerativeFunction[R]):
     ) -> Weight:
         raise NotImplementedError
 
-    def edit_choice_map_constraint(
+    def edit_choice_map(
         self,
         key: PRNGKey,
         trace: VmapTrace[R],
-        constraint: ChoiceMapConstraint,
+        constraint: ChoiceMap,
         argdiffs: Argdiffs,
     ) -> tuple[VmapTrace[R], Weight, Retdiff[R], EditRequest]:
         primals = Diff.tree_primal(argdiffs)
@@ -236,7 +233,6 @@ class VmapCombinator(Generic[R], GenerativeFunction[R]):
         def _edit(key, idx, subtrace, argdiffs):
             # Here we have to vmap across indices and perform individual lookups because the user might only constrain a subset of all indices. This forces recomputation.
             subconstraint = constraint(idx)
-            assert isinstance(subconstraint, ChoiceMapConstraint), type(subconstraint)
 
             new_subtrace, w, retdiff, bwd_request = self.gen_fn.edit(
                 key,
@@ -245,15 +241,8 @@ class VmapCombinator(Generic[R], GenerativeFunction[R]):
                 argdiffs,
             )
             assert isinstance(bwd_request, Update)
-            inner_chm_constraint = bwd_request.constraint
-            assert isinstance(inner_chm_constraint, ChoiceMapConstraint)
-            inner_chm = inner_chm_constraint.choice_map
-            return (
-                new_subtrace,
-                w,
-                retdiff,
-                ChoiceMapConstraint(ChoiceMap.entry(inner_chm, idx)),
-            )
+            inner_chm = bwd_request.constraint
+            return (new_subtrace, w, retdiff, inner_chm.extend(idx))
 
         new_subtraces, w, retdiff, bwd_constraints = jax.vmap(
             _edit, in_axes=(0, 0, 0, self.in_axes)
@@ -277,8 +266,7 @@ class VmapCombinator(Generic[R], GenerativeFunction[R]):
         assert isinstance(trace, VmapTrace)
         assert isinstance(edit_request, Update), type(edit_request)
         constraint = edit_request.constraint
-        assert isinstance(constraint, ChoiceMapConstraint)
-        return self.edit_choice_map_constraint(
+        return self.edit_choice_map(
             key,
             trace,
             constraint,

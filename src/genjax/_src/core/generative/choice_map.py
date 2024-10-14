@@ -23,7 +23,7 @@ import jax.tree_util as jtu
 import treescope.repr_lib as trl
 from deprecated import deprecated
 
-from genjax._src.core.generative.core import Constraint, Projection, Sample
+from genjax._src.core.generative.core import Constraint, Projection
 from genjax._src.core.generative.functional_types import Mask
 from genjax._src.core.interpreters.staging import FlagOp, staged_err, tree_choose
 from genjax._src.core.pytree import Pytree
@@ -772,7 +772,7 @@ class _ChoiceMapBuilder:
         return self.set(ChoiceMap.kw(**kwargs))
 
 
-class ChoiceMap(Sample):
+class ChoiceMap(Pytree):
     """The type `ChoiceMap` denotes a map-like value which can be sampled from
     generative functions.
 
@@ -1773,17 +1773,5 @@ ChoiceMapBuilder = _ChoiceMapBuilder(_empty, [])
 
 
 @Pytree.dataclass(match_args=True)
-class ChoiceMapConstraint(Constraint, ChoiceMap):
+class ChoiceMapConstraint(Constraint):
     choice_map: ChoiceMap
-
-    def get_submap(
-        self,
-        addr: ExtendedAddressComponent,
-    ) -> ChoiceMap:
-        return ChoiceMapConstraint(self.choice_map.get_submap(addr))
-
-    def get_value(self) -> Any:
-        return self.choice_map.get_value()
-
-    def static_is_empty(self):
-        return self.choice_map.static_is_empty()

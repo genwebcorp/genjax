@@ -15,10 +15,7 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from genjax._src.core.generative.choice_map import (
-    ChoiceMap,
-    ChoiceMapConstraint,
-)
+from genjax._src.core.generative.choice_map import ChoiceMap, ChoiceMapConstraint
 from genjax._src.core.generative.core import (
     Argdiffs,
     Arguments,
@@ -26,7 +23,6 @@ from genjax._src.core.generative.core import (
     EditRequest,
     Projection,
     Retdiff,
-    Sample,
     Score,
     Weight,
 )
@@ -132,9 +128,9 @@ class Trace(Generic[R], Pytree):
 
         """
 
-    @abstractmethod
-    def get_sample(self) -> Sample:
-        """Return the [`Sample`][genjax.core.Sample] sampled from the distribution over samples by the generative function during the invocation which created the [`Trace`][genjax.core.Trace]."""
+    def get_sample(self) -> "genjax.ChoiceMap":
+        """alias for [`genjax.Trace.get_choices`][]."""
+        return self.get_choices()
 
     @abstractmethod
     def get_choices(self) -> "genjax.ChoiceMap":
@@ -410,7 +406,7 @@ class GenerativeFunction(Generic[R], Pytree):
         """
         Return [the score][genjax.core.Trace.get_score] and [the return value][genjax.core.Trace.get_retval] when the generative function is invoked with the provided arguments, and constrained to take the provided sample as the sampled value.
 
-        It is an error if the provided sample value is off the support of the distribution over the `Sample` type, or otherwise induces a partial constraint on the execution of the generative function (which would require the generative function to provide an `edit` implementation which responds to the `EditRequest` induced by the [`importance`][genjax.core.GenerativeFunction.importance] interface).
+        It is an error if the provided sample value is off the support of the distribution over the `ChoiceMap` type, or otherwise induces a partial constraint on the execution of the generative function (which would require the generative function to provide an `edit` implementation which responds to the `EditRequest` induced by the [`importance`][genjax.core.GenerativeFunction.importance] interface).
 
         Examples:
             This method is similar to density evaluation interfaces for distributions.
@@ -481,7 +477,6 @@ class GenerativeFunction(Generic[R], Pytree):
             from genjax import normal
             from genjax import Diff
             from genjax import Update
-            from genjax import ChoiceMapConstraint
             from genjax import ChoiceMap as C
 
             key = PRNGKey(0)
@@ -504,7 +499,7 @@ class GenerativeFunction(Generic[R], Pytree):
                 key,
                 initial_tr,
                 Update(
-                    ChoiceMapConstraint(C.empty()),
+                    C.empty(),
                 ),
                 Diff.unknown_change((3.0,)),
             )
@@ -550,10 +545,10 @@ class GenerativeFunction(Generic[R], Pytree):
 
         ```python exec="yes" source="material-block" session="core"
         from genjax import Update
-        from genjax import ChoiceMap, ChoiceMapConstraint
+        from genjax import ChoiceMap
 
         g = Update(
-            ChoiceMapConstraint(ChoiceMap.empty()),  # Constraint
+            ChoiceMap.empty(),  # Constraint
         )
         ```
 
@@ -564,7 +559,7 @@ class GenerativeFunction(Generic[R], Pytree):
             key,
             initial_tr,
             Update(
-                ChoiceMapConstraint(C.kw(v1=3.0)),
+                C.kw(v1=3.0),
             ),
             Diff.unknown_change((3.0,)),
         )
@@ -589,7 +584,7 @@ class GenerativeFunction(Generic[R], Pytree):
         argdiffs: Argdiffs,
     ) -> tuple[Trace[R], Weight, Retdiff[R], Constraint]:
         request = Update(
-            ChoiceMapConstraint(constraint),
+            constraint,
         )
         tr, w, rd, bwd = request.edit(
             key,
@@ -597,7 +592,7 @@ class GenerativeFunction(Generic[R], Pytree):
             argdiffs,
         )
         assert isinstance(bwd, Update), type(bwd)
-        return tr, w, rd, bwd.constraint
+        return tr, w, rd, ChoiceMapConstraint(bwd.constraint)
 
     def importance(
         self,
@@ -640,11 +635,12 @@ class GenerativeFunction(Generic[R], Pytree):
 
         Under the hood, creates an [`EditRequest`][genjax.core.EditRequest] which requests that the generative function respond with a move from the _empty_ trace (the only possible value for _empty_ target $\\delta_\\emptyset$) to the target induced by the generative function for constraint $C$ with arguments $a$.
         """
+        if isinstance(constraint, ChoiceMap):
+            constraint = ChoiceMapConstraint(constraint)
+
         return self.generate(
             key,
-            constraint
-            if isinstance(constraint, Constraint)
-            else ChoiceMapConstraint(constraint),
+            constraint,
             args,
         )
 
@@ -652,9 +648,9 @@ class GenerativeFunction(Generic[R], Pytree):
         self,
         key: PRNGKey,
         args: Arguments,
-    ) -> tuple[Sample, Score, R]:
+    ) -> tuple[ChoiceMap, Score, R]:
         """
-        Samples a [`Sample`][genjax.core.Sample] and any untraced randomness $r$ from the generative function's distribution over samples ($P$), and returns the [`Score`][genjax.core.Score] of that sample under the distribution, and the `R` of the generative function's return value function $f(r, t, a)$ for the sample and untraced randomness.
+        Samples a [`ChoiceMap`][genjax.core.ChoiceMap] and any untraced randomness $r$ from the generative function's distribution over samples ($P$), and returns the [`Score`][genjax.core.Score] of that sample under the distribution, and the `R` of the generative function's return value function $f(r, t, a)$ for the sample and untraced randomness.
         """
         tr = self.simulate(key, args)
         sample = tr.get_sample()
@@ -1617,7 +1613,7 @@ class GenerativeFunctionClosure(Generic[R], GenerativeFunction[R]):
 
 @Pytree.dataclass(match_args=True)
 class Update(EditRequest):
-    constraint: ChoiceMapConstraint
+    constraint: ChoiceMap
 
     def edit(
         self,

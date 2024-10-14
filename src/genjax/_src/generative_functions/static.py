@@ -108,11 +108,6 @@ class StaticTrace(Generic[R], Trace[R]):
     def get_gen_fn(self) -> GenerativeFunction[R]:
         return self.gen_fn
 
-    def get_sample(self) -> ChoiceMap:
-        addresses = self.addresses.get_visited()
-        sub_chms = (tr.get_sample() for tr in self.subtraces)
-        return ChoiceMap.from_mapping(zip(addresses, sub_chms))
-
     def get_choices(self) -> ChoiceMap:
         addresses = self.addresses.get_visited()
         sub_chms = (tr.get_choices() for tr in self.subtraces)
@@ -311,7 +306,7 @@ class AssessHandler(StaticHandler):
         return (self.score,)
 
     def get_subsample(self, addr: StaticAddress) -> ChoiceMap:
-        return self.choice_map_sample(addr)  # pyright: ignore
+        return self.choice_map_sample(addr)
 
     def handle_trace(
         self,
@@ -344,7 +339,7 @@ def assess_transform(source_fn):
 @dataclass
 class GenerateHandler(StaticHandler):
     key: PRNGKey
-    choice_map_constraint: ChoiceMapConstraint
+    choice_map: ChoiceMap
     address_visitor: AddressVisitor = Pytree.field(default_factory=AddressVisitor)
     score: Score = Pytree.field(default_factory=lambda: jnp.zeros(()))
     weight: Weight = Pytree.field(default_factory=lambda: jnp.zeros(()))
@@ -377,8 +372,8 @@ class GenerateHandler(StaticHandler):
     def get_subconstraint(
         self,
         addr: StaticAddress,
-    ) -> ChoiceMapConstraint:
-        return self.choice_map_constraint(addr)  # pyright: ignore
+    ) -> Constraint:
+        return ChoiceMapConstraint(self.choice_map(addr))
 
     def handle_trace(
         self,
@@ -401,10 +396,10 @@ def generate_transform(source_fn):
     @functools.wraps(source_fn)
     def wrapper(
         key: PRNGKey,
-        choice_map_constraint: ChoiceMapConstraint,
+        choice_map: ChoiceMap,
         args: tuple[Any, ...],
     ):
-        stateful_handler = GenerateHandler(key, choice_map_constraint)
+        stateful_handler = GenerateHandler(key, choice_map)
         retval = forward(source_fn)(stateful_handler, *args)
         (
             score,
@@ -436,12 +431,12 @@ def generate_transform(source_fn):
 class UpdateHandler(StaticHandler):
     key: PRNGKey
     previous_trace: StaticTrace[Any]
-    constraint: ChoiceMapConstraint
+    constraint: ChoiceMap
     address_visitor: AddressVisitor = Pytree.field(default_factory=AddressVisitor)
     score: FloatArray = Pytree.field(default_factory=lambda: jnp.zeros(()))
     weight: FloatArray = Pytree.field(default_factory=lambda: jnp.zeros(()))
     address_traces: list[Trace[Any]] = Pytree.field(default_factory=list)
-    bwd_constraints: list[ChoiceMapConstraint] = Pytree.field(default_factory=list)
+    bwd_constraints: list[ChoiceMap] = Pytree.field(default_factory=list)
     key_counter: int = Pytree.static(default=1)
 
     def fresh_key_and_increment(self):
@@ -461,8 +456,8 @@ class UpdateHandler(StaticHandler):
     def visit(self, addr):
         self.address_visitor.visit(addr)
 
-    def get_subconstraint(self, addr: StaticAddress) -> ChoiceMapConstraint:
-        return self.constraint(addr)  # pyright: ignore
+    def get_subconstraint(self, addr: StaticAddress) -> ChoiceMap:
+        return self.constraint(addr)
 
     def get_subtrace(
         self,
@@ -491,7 +486,7 @@ class UpdateHandler(StaticHandler):
             argdiffs,
         )
         assert isinstance(bwd_request, Update) and isinstance(
-            bwd_request.constraint, ChoiceMapConstraint
+            bwd_request.constraint, ChoiceMap
         )
         self.bwd_constraints.append(bwd_request.constraint)
         self.score += tr.get_score()
@@ -506,7 +501,7 @@ def choice_map_change_transform(source_fn):
     def wrapper(
         key: PRNGKey,
         previous_trace: StaticTrace[R],
-        constraint: ChoiceMapConstraint,
+        constraint: ChoiceMap,
         diffs: tuple[Any, ...],
     ):
         stateful_handler = UpdateHandler(key, previous_trace, constraint)
@@ -694,7 +689,7 @@ class RegenerateRequestHandler(StaticHandler):
         self.address_visitor.visit(addr)
 
     def get_subselection(self, addr: StaticAddress) -> Selection:
-        return self.selection(addr)  # pyright: ignore
+        return self.selection(addr)
 
     def get_subtrace(
         self,
@@ -871,6 +866,7 @@ class StaticGenerativeFunction(Generic[R], GenerativeFunction[R]):
         args: tuple[Any, ...],
     ) -> tuple[StaticTrace[R], Weight]:
         assert isinstance(constraint, ChoiceMapConstraint), type(constraint)
+
         syntax_sugar_handled = push_trace_overload_stack(
             handler_trace_with_static, self.source
         )
@@ -885,7 +881,7 @@ class StaticGenerativeFunction(Generic[R], GenerativeFunction[R]):
                 address_traces,
                 score,
             ),
-        ) = generate_transform(syntax_sugar_handled)(key, constraint, args)
+        ) = generate_transform(syntax_sugar_handled)(key, constraint.choice_map, args)
         return StaticTrace(
             self,
             args,
@@ -914,7 +910,7 @@ class StaticGenerativeFunction(Generic[R], GenerativeFunction[R]):
         self,
         key: PRNGKey,
         trace: StaticTrace[R],
-        constraint: ChoiceMapConstraint,
+        constraint: ChoiceMap,
         argdiffs: Argdiffs,
     ) -> tuple[StaticTrace[R], Weight, Retdiff[R], EditRequest]:
         syntax_sugar_handled = push_trace_overload_stack(
@@ -942,7 +938,7 @@ class StaticGenerativeFunction(Generic[R], GenerativeFunction[R]):
             addresses = Pytree.tree_const_unwrap(addresses)
             chm = ChoiceMap.from_mapping(zip(addresses, subconstraints))
             return Update(
-                ChoiceMapConstraint(chm),
+                chm,
             )
 
         bwd_request = make_bwd_request(address_visitor, bwd_requests)
