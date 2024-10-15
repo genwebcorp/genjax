@@ -75,7 +75,7 @@ class TestVmapCombinator:
         (tr, _) = kernel.importance(sub_key, chm, (map_over,))
         for i in range(0, 3):
             v = tr.get_choices()[i, "z"]
-            assert v == genjax.Mask(zv[i], True)
+            assert v == zv[i]
 
     def test_vmap_combinator_nested_indexed_choice_map_importance(self):
         @genjax.vmap(in_axes=(0,))
@@ -210,7 +210,7 @@ class TestVmapCombinator:
             return (new_x, new_x + 1)
 
         trace = step.vmap(in_axes=(None, 0)).simulate(
-            jax.random.PRNGKey(20), (2.0, jnp.arange(0, dtype=float))
+            jax.random.key(20), (2.0, jnp.arange(0, dtype=float))
         )
 
         assert (
