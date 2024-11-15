@@ -40,9 +40,9 @@ class TestRepeatCombinator:
 
         assert repeat_retval.shape == (10,), "We asked for and received 10 squares"
 
-        assert jnp.array_equal(
-            square.vmap()(jnp.repeat(2, 10))(key), repeat_retval
-        ), "Repeat 10 times matches vmap with 10 equal inputs"
+        assert jnp.array_equal(square.vmap()(jnp.repeat(2, 10))(key), repeat_retval), (
+            "Repeat 10 times matches vmap with 10 equal inputs"
+        )
 
     def test_nested_lookup(self):
         @gen
