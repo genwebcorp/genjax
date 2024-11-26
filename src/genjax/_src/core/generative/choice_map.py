@@ -1464,7 +1464,12 @@ class Choice(Generic[T], ChoiceMap):
         return self.v
 
     def get_submap(self, addr: AddressComponent) -> ChoiceMap:
-        return ChoiceMap.empty()
+        if isinstance(addr, StaticAddressComponent):
+            return ChoiceMap.empty()
+        else:
+            return jtu.tree_map(
+                lambda v: v[addr], self, is_leaf=lambda x: isinstance(x, Mask)
+            )
 
 
 @Pytree.dataclass(match_args=True)
@@ -1490,7 +1495,7 @@ class Indexed(ChoiceMap):
     """
 
     c: ChoiceMap
-    addr: int | IntArray | None
+    addr: int | IntArray
 
     @staticmethod
     def build(chm: ChoiceMap, addr: DynamicAddressComponent) -> ChoiceMap:
@@ -1499,7 +1504,7 @@ class Indexed(ChoiceMap):
 
         elif isinstance(addr, slice):
             if addr == _full_slice:
-                return Indexed(chm, None)
+                return chm
             else:
                 raise ValueError(f"Partial slices not supported: {addr}")
 
@@ -1623,7 +1628,9 @@ class Static(ChoiceMap):
             v = self.mapping.get(addr, {})
             return Static(v) if isinstance(v, dict) else v
         else:
-            return ChoiceMap.empty()
+            return jtu.tree_map(
+                lambda v: v[addr], self, is_leaf=lambda x: isinstance(x, Mask)
+            )
 
     def static_is_empty(self) -> bool:
         return len(self.mapping) == 0
