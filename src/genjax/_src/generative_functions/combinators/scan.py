@@ -775,7 +775,9 @@ def scan(
     return decorator
 
 
-def prepend_initial_acc(args: tuple[Carry, ...], ret: tuple[Carry, Carry]) -> Carry:
+def prepend_initial_acc(
+    args: tuple[Carry, ...], _: tuple[Carry, ...], ret: tuple[Carry, Carry]
+) -> Carry:
     """Prepends the initial accumulator value to the array of accumulated
     values.
 
@@ -980,7 +982,10 @@ def iterate(*, n: int) -> Callable[[GenerativeFunction[Y]], GenerativeFunction[Y
     def decorator(f: GenerativeFunction[Y]) -> GenerativeFunction[Y]:
         # strip off the JAX-supplied `None` on the way in, accumulate `ret` on the way out.
         return (
-            f.dimap(pre=lambda *args: args[:-1], post=lambda _, ret: (ret, ret))
+            f.dimap(
+                pre=lambda *args: args[:-1],
+                post=lambda _args, _xformed, ret: (ret, ret),
+            )
             .scan(n=n)
             .dimap(pre=lambda *args: (*args, None), post=prepend_initial_acc)
         )
@@ -1040,10 +1045,10 @@ def iterate_final(
 
     def decorator(f: GenerativeFunction[Y]) -> GenerativeFunction[Y]:
         # strip off the JAX-supplied `None` on the way in, no accumulation on the way out.
-        def pre_post(_, ret: Y):
+        def pre_post(_, _xformed, ret: Y):
             return ret, None
 
-        def post_post(_, ret: tuple[Y, None]):
+        def post_post(_, _xformed, ret: tuple[Y, None]):
             return ret[0]
 
         return (
@@ -1099,7 +1104,7 @@ def masked_iterate_final() -> Callable[[GenerativeFunction[Y]], GenerativeFuncti
         def pre(state, flag: Flag):
             return flag, state
 
-        def post(_unused_args, masked_retval: Mask[Y]):
+        def post(_unused_args, _xformed, masked_retval: Mask[Y]):
             return masked_retval.value, None
 
         # scan_step: (a, bool) -> a
@@ -1150,7 +1155,7 @@ def masked_iterate() -> Callable[[GenerativeFunction[Y]], GenerativeFunction[Y]]
         def pre(state, flag: Flag):
             return flag, state
 
-        def post(_unused_args, masked_retval: Mask[Y]):
+        def post(_unused_args, _xformed, masked_retval: Mask[Y]):
             v = masked_retval.value
             return v, v
 
