@@ -1744,6 +1744,17 @@ class Or(ChoiceMap):
                     b = Mask.build(b)
                     return Choice.build(a | b)
 
+                case (Switch(), Switch()):
+                    raise Exception(
+                        f"We can't currently handle two switches in an Or: {c1}, {c2}"
+                    )
+
+                case (Switch(idx, chms), _):
+                    return Switch.build(idx, [c1 | c2 for c1 in chms])
+
+                case (_, Switch(idx, chms)):
+                    return Switch.build(idx, [c1 | c2 for c2 in chms])
+
                 case (Choice(), _) | (_, Choice()):
                     raise Exception(f"Choice and non-Choice in Or: {c1}, {c2}")
 
