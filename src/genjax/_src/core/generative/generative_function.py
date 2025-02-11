@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,7 @@ from deprecated import deprecated
 from genjax._src.core.generative.choice_map import (
     ChoiceMap,
     ChoiceMapConstraint,
+    ExtendedAddress,
     Selection,
 )
 from genjax._src.core.generative.core import (
@@ -189,6 +191,30 @@ class Trace(Generic[R], Pytree):
             key,
             self,
             selection,
+        )
+
+    def get_subtrace(self, *addresses: ExtendedAddress) -> "Trace[Any]":
+        """
+        Return the subtrace having the supplied address. Specifying multiple addresses
+        will apply the operation recursively.
+
+        GenJAX does not guarantee the validity of any inference computations performed
+        using information from the returned subtrace. In other words, it is safe to
+        inspect the data of subtraces -- but it not safe to use that data to make decisions
+        about inference. This is true of all the methods on the subtrace, including
+        `Trace.get_args`, `Trace.get_score`, `Trace.get_retval`, etc. It is safe to look,
+        but don't use the data for non-trivial things!"""
+
+        return functools.reduce(
+            lambda tr, addr: tr.get_inner_trace(addr), addresses, self
+        )
+
+    def get_inner_trace(self, address: ExtendedAddress) -> "Trace[Any]":
+        """Override this method to provide `Trace.get_subtrace` support
+        for those trace types that have substructure that can be addressed
+        in this way."""
+        raise NotImplementedError(
+            "This type of Trace object does not possess subtraces."
         )
 
     ###################
