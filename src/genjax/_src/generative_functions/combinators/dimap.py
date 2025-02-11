@@ -42,7 +42,7 @@ S = TypeVar("S")
 
 @Pytree.dataclass
 class DimapTrace(Generic[R, S], Trace[S]):
-    gen_fn: "DimapCombinator[Any, R, S]"
+    gen_fn: "Dimap[Any, R, S]"
     inner: Trace[R]
     args: tuple[Any, ...]
     retval: S
@@ -67,7 +67,7 @@ class DimapTrace(Generic[R, S], Trace[S]):
 
 
 @Pytree.dataclass
-class DimapCombinator(Generic[ArgTuple, R, S], GenerativeFunction[S]):
+class Dimap(Generic[ArgTuple, R, S], GenerativeFunction[S]):
     """
     A combinator that transforms both the arguments and return values of a [`genjax.GenerativeFunction`][].
 
@@ -222,7 +222,7 @@ def dimap(
     post: Callable[[tuple[Any, ...], ArgTuple, R], S] = lambda _,
     _xformed,
     retval: retval,
-) -> Callable[[GenerativeFunction[R]], DimapCombinator[ArgTuple, R, S]]:
+) -> Callable[[GenerativeFunction[R]], Dimap[ArgTuple, R, S]]:
     """
     Returns a decorator that wraps a [`genjax.GenerativeFunction`][] and applies pre- and post-processing functions to its arguments and return value.
 
@@ -265,15 +265,15 @@ def dimap(
         ```
     """
 
-    def decorator(f: GenerativeFunction[R]) -> DimapCombinator[ArgTuple, R, S]:
-        return DimapCombinator(f, pre, post)
+    def decorator(f: GenerativeFunction[R]) -> Dimap[ArgTuple, R, S]:
+        return Dimap(f, pre, post)
 
     return decorator
 
 
 def map(
     f: Callable[[R], S],
-) -> Callable[[GenerativeFunction[R]], DimapCombinator[tuple[Any, ...], R, S]]:
+) -> Callable[[GenerativeFunction[R]], Dimap[tuple[Any, ...], R, S]]:
     """
     Returns a decorator that wraps a [`genjax.GenerativeFunction`][] and applies a post-processing function to its return value.
 
@@ -318,7 +318,7 @@ def map(
 
 def contramap(
     f: Callable[..., ArgTuple],
-) -> Callable[[GenerativeFunction[R]], DimapCombinator[ArgTuple, R, R]]:
+) -> Callable[[GenerativeFunction[R]], Dimap[ArgTuple, R, R]]:
     """
     Returns a decorator that wraps a [`genjax.GenerativeFunction`][] and applies a pre-processing function to its arguments.
 
