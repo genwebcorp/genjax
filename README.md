@@ -4,7 +4,7 @@
 </p>
 <p align="center">
   <strong>
-    Scaling probabilistic programming with programmable inference.
+  Probabilistic programming with programmable inference for parallel accelerators.
   </strong>
 </p>
 
