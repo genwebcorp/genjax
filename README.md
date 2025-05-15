@@ -22,7 +22,7 @@
 
 </div>
 
-> This is the community edition of [GenJAX](https://github.com/probcomp/genjax), a research probabilistic programming language in development at MIT's Probabilistic Computing Project. We recommend this version for stability, community contributions, expanded features and more active community-driven maintenance. The research version is more likely to be unstable, and evolve sporadically.
+> This is the community edition of [GenJAX](https://github.com/probcomp/genjax), a probabilistic programming language in development at MIT's Probabilistic Computing Project. We recommend this version for stability, community contributions, expanded features and more active community-driven maintenance. The research version is more likely to be unstable, and evolve sporadically.
 
 ## 🔎 What is GenJAX?
 
