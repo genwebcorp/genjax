@@ -20,9 +20,9 @@
 | :---------------: | :--------------------------------: |
 | [![](https://img.shields.io/badge/docs-stable-blue.svg?style=flat-square)](https://genjax.gen.dev) [![](https://img.shields.io/badge/jupyter-%23FA0F00.svg?style=flat-square&logo=jupyter&logoColor=white)][cookbook] | [![][main_build_action_badge]][main_build_status_url] |
 
-> This is the community edition of [GenJAX](https://github.com/probcomp/genjax), a research probabilistic programming language in development at MIT's Probabilistic Computing Project. We recommend this version for stability, community contributions, expanded features and more active community-driven maintenance. The research version is more likely to be unstable, and evolve sporadically.
-
 </div>
+
+> This is the community edition of [GenJAX](https://github.com/probcomp/genjax), a research probabilistic programming language in development at MIT's Probabilistic Computing Project. We recommend this version for stability, community contributions, expanded features and more active community-driven maintenance. The research version is more likely to be unstable, and evolve sporadically.
 
 ## 🔎 What is GenJAX?
 
