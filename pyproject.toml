@@ -45,9 +45,7 @@ beartype = "^0.20.0"
 deprecated = "^1.2.14"
 penzai = "^0.2.2"
 treescope = "^0.1.5"
-# Numpy <2.0.0 is due to tfp issues: https://github.com/tensorflow/probability/issues/1814
-# remove this constraint when that issue is closed.
-numpy = ">=1.22,<2.0.0"
+numpy = ">=2.0.0"
 genstudio = ">=2025.2.1"
 safety = "^3.5.1"
 
