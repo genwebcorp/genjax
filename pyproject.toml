@@ -47,7 +47,6 @@ penzai = "^0.2.2"
 treescope = "^0.1.5"
 numpy = ">=2.0.0"
 genstudio = ">=2025.2.1"
-safety = "^3.5.1"
 
 [tool.poetry.group.dev]
 optional = true
@@ -61,7 +60,6 @@ pytest = "^7.2.0"
 pytest-benchmark = "^4.0.0"
 pytest-xdist = { version = "^3.2.0", extras = ["psutil"] }
 ruff = "0.11.2"
-safety = ">=2.3.5"
 seaborn = "^0.12.1"
 xdoctest = "^1.1.0"
 jupyterlab = "^4.2.5"
